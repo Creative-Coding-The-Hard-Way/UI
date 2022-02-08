@@ -1,6 +1,6 @@
 # Renderers
 
-This example uses a single multisample render pass to clear the screen.
+This example renderes a multisampled triangle to the screen.
 
 
 ## Usage
