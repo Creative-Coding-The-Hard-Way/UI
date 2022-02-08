@@ -12,7 +12,7 @@ use ccthw::{
 };
 use ::{anyhow::Result, std::sync::Arc};
 
-use self::passthrough::Passthrough;
+use self::passthrough::{Passthrough, Vertex2D};
 
 // The main application state.
 pub struct Application {
@@ -53,12 +53,37 @@ impl Application {
             vk_alloc.clone(),
         )?;
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
-        let passthrough = Passthrough::new(
-            framebuffers[0].extent,
-            msaa_renderpass.render_pass.clone(),
-            msaa_renderpass.samples(),
+        let mut passthrough = Passthrough::new(
+            &msaa_renderpass,
+            vk_alloc.clone(),
             vk_dev.clone(),
         )?;
+        passthrough.push_vertices(&[
+            Vertex2D {
+                pos: [0.0, -0.5],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+            },
+            Vertex2D {
+                pos: [0.5, 0.5],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+            },
+            Vertex2D {
+                pos: [-0.5, 0.5],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+            },
+            Vertex2D {
+                pos: [0.5, 0.5],
+                rgba: [1.0, 0.0, 0.0, 1.0],
+            },
+            Vertex2D {
+                pos: [-0.5, 0.5],
+                rgba: [0.0, 1.0, 0.0, 1.0],
+            },
+            Vertex2D {
+                pos: [1.0, 1.0],
+                rgba: [0.0, 0.0, 1.0, 1.0],
+            },
+        ])?;
 
         Ok(Self {
             msaa_renderpass,
@@ -114,9 +139,7 @@ impl Application {
                 &self.framebuffers[index],
                 [0.0, 0.0, 0.0, 1.0],
             );
-
-            // TODO: add render commands here
-
+            self.passthrough.write_commands(cmd)?;
             self.msaa_renderpass.end_renderpass(cmd);
         };
 
@@ -142,12 +165,8 @@ impl Application {
         )?;
         self.framebuffers =
             self.msaa_renderpass.create_swapchain_framebuffers()?;
-        self.passthrough = Passthrough::new(
-            self.framebuffers[0].extent,
-            self.msaa_renderpass.render_pass.clone(),
-            self.msaa_renderpass.samples(),
-            self.vk_dev.clone(),
-        )?;
+        self.passthrough
+            .rebuild_swapchain_resources(&self.msaa_renderpass)?;
 
         Ok(())
     }

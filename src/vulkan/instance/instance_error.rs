@@ -30,4 +30,7 @@ pub enum InstanceError {
 
     #[error("Unable to create the logical device")]
     UnableToCreateLogicalDevice(#[source] vk::Result),
+
+    #[error("Error while waiting for the Vulkan device to idle")]
+    UnableToWaitIdle(#[source] vk::Result),
 }
