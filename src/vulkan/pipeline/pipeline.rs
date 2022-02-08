@@ -3,22 +3,35 @@ use std::sync::Arc;
 use ash::vk;
 
 use crate::vulkan::{
-    errors::VulkanDebugError, pipeline::PipelineError, RenderDevice,
-    VulkanDebug,
+    errors::VulkanDebugError, pipeline::PipelineError, PipelineLayout,
+    RenderDevice, RenderPass, VulkanDebug,
 };
 
 /// An owned Pipeline which is destroyed automatically when it's dropped.
 pub struct Pipeline {
+    /// The render pass used when creating this pipeline.
+    pub render_pass: Arc<RenderPass>,
+
+    /// The pipeline layout used to create this pipeline.
+    pub pipeline_layout: Arc<PipelineLayout>,
+
+    /// The raw Vulkan pipeline handle.
     pub raw: vk::Pipeline,
+
+    /// The Vulkan binding point this pipeline uses.
     pub bind_point: vk::PipelineBindPoint,
+
+    /// The Vulkan pipeline layout.
     pub vk_dev: Arc<RenderDevice>,
 }
 
 impl Pipeline {
     /// Create a new graphics pipeline.
     pub fn new_graphics_pipeline(
-        vk_dev: Arc<RenderDevice>,
         create_info: vk::GraphicsPipelineCreateInfo,
+        render_pass: Arc<RenderPass>,
+        pipeline_layout: Arc<PipelineLayout>,
+        vk_dev: Arc<RenderDevice>,
     ) -> Result<Pipeline, PipelineError> {
         let raw = unsafe {
             vk_dev
@@ -33,6 +46,8 @@ impl Pipeline {
                 })?[0]
         };
         Ok(Self {
+            render_pass,
+            pipeline_layout,
             raw,
             bind_point: vk::PipelineBindPoint::GRAPHICS,
             vk_dev,

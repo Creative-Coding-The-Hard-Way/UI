@@ -110,6 +110,11 @@ impl MultisampleRenderpass {
             .logical_device
             .cmd_end_render_pass(command_buffer.raw);
     }
+
+    /// The number of samples used by the render target
+    pub fn samples(&self) -> vk::SampleCountFlags {
+        self.msaa_render_target.image.create_info.samples
+    }
 }
 
 impl VulkanDebug for MultisampleRenderpass {

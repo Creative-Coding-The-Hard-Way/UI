@@ -3,24 +3,32 @@ use std::sync::Arc;
 use ash::vk;
 
 use crate::vulkan::{
-    errors::VulkanDebugError, pipeline::PipelineError, RenderDevice,
-    VulkanDebug,
+    errors::VulkanDebugError, pipeline::PipelineError, DescriptorSetLayout,
+    RenderDevice, VulkanDebug,
 };
 
 /// An owned Pipeline Layout which is destroyed automatically when it's dropped.
 pub struct PipelineLayout {
+    /// The descriptor set layouts used to create this pipeline layout.
+    pub descriptor_layouts: Vec<Arc<DescriptorSetLayout>>,
+
+    /// The raw vulkan pipeline layout handle.
     pub raw: vk::PipelineLayout,
+
+    /// The Vulkan device used to create Vulkan objects.
     pub vk_dev: Arc<RenderDevice>,
 }
 
 impl PipelineLayout {
     pub fn new(
         vk_dev: Arc<RenderDevice>,
-        descriptor_layouts: &[vk::DescriptorSetLayout],
+        descriptor_layouts: &[Arc<DescriptorSetLayout>],
         push_constant_ranges: &[vk::PushConstantRange],
     ) -> Result<Self, PipelineError> {
+        let raw_descriptor_layout_ptrs: Vec<vk::DescriptorSetLayout> =
+            descriptor_layouts.iter().map(|layout| layout.raw).collect();
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo {
-            p_set_layouts: descriptor_layouts.as_ptr(),
+            p_set_layouts: raw_descriptor_layout_ptrs.as_ptr(),
             set_layout_count: descriptor_layouts.len() as u32,
             p_push_constant_ranges: push_constant_ranges.as_ptr(),
             push_constant_range_count: push_constant_ranges.len() as u32,
@@ -32,7 +40,11 @@ impl PipelineLayout {
                 .create_pipeline_layout(&pipeline_layout_create_info, None)
                 .map_err(PipelineError::UnableToCreatePipelineLayout)?
         };
-        Ok(Self { raw, vk_dev })
+        Ok(Self {
+            raw,
+            descriptor_layouts: descriptor_layouts.to_owned(),
+            vk_dev,
+        })
     }
 }
 

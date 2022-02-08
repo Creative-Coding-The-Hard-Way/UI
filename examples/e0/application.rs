@@ -1,6 +1,8 @@
 //! This module defines the main application initialization, event loop, and
 //! rendering.
 
+mod passthrough;
+
 use ccthw::{
     frame_pipeline::{FrameError, FramePipeline},
     glfw_window::GlfwWindow,
@@ -10,11 +12,14 @@ use ccthw::{
 };
 use ::{anyhow::Result, std::sync::Arc};
 
+use self::passthrough::Passthrough;
+
 // The main application state.
 pub struct Application {
     // renderers
     msaa_renderpass: MultisampleRenderpass,
     framebuffers: Vec<Framebuffer>,
+    passthrough: Passthrough,
 
     // app state
     fps_limit: FrameRateLimit,
@@ -41,15 +46,24 @@ impl Application {
 
         // Create per-frame resources and the renderpass
         let frame_pipeline = FramePipeline::new(vk_dev.clone())?;
+
+        // create the renderer
         let msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
             vk_dev.clone(),
             vk_alloc.clone(),
         )?;
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
+        let passthrough = Passthrough::new(
+            framebuffers[0].extent,
+            msaa_renderpass.render_pass.clone(),
+            msaa_renderpass.samples(),
+            vk_dev.clone(),
+        )?;
 
         Ok(Self {
             msaa_renderpass,
             framebuffers,
+            passthrough,
 
             fps_limit: FrameRateLimit::new(60, 30),
             paused: false,
@@ -128,6 +142,12 @@ impl Application {
         )?;
         self.framebuffers =
             self.msaa_renderpass.create_swapchain_framebuffers()?;
+        self.passthrough = Passthrough::new(
+            self.framebuffers[0].extent,
+            self.msaa_renderpass.render_pass.clone(),
+            self.msaa_renderpass.samples(),
+            self.vk_dev.clone(),
+        )?;
 
         Ok(())
     }
