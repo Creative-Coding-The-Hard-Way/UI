@@ -2,13 +2,22 @@ use ::{ash::vk, std::sync::Arc};
 
 use crate::vulkan::{
     errors::VulkanDebugError, framebuffer::FramebufferError, RenderDevice,
-    VulkanDebug,
+    RenderPass, VulkanDebug,
 };
 
 /// An owned Vulkan framebuffer which is automatically destroyed when it is
 /// dropped.
 pub struct Framebuffer {
+    /// The raw Vulkan framebuffer handle.
     pub raw: vk::Framebuffer,
+
+    /// The renderpass used to create this framebuffer.
+    pub render_pass: Arc<RenderPass>,
+
+    /// The full framebuffer size, set when the framebuffer is created.
+    pub extent: vk::Extent2D,
+
+    /// The Vulkan device used to create the framebuffer and render pass.
     pub vk_dev: Arc<RenderDevice>,
 }
 
@@ -17,7 +26,7 @@ impl Framebuffer {
     /// swapchain's image views.
     pub fn with_swapchain_color_attachments(
         vk_dev: Arc<RenderDevice>,
-        render_pass: vk::RenderPass,
+        render_pass: &Arc<RenderPass>,
         debug_name: impl Into<String>,
     ) -> Result<Vec<Self>, FramebufferError> {
         let name = debug_name.into();
@@ -42,13 +51,13 @@ impl Framebuffer {
     /// Create a single framebuffer with a color attachment.
     pub fn with_color_attachments(
         vk_dev: Arc<RenderDevice>,
-        render_pass: vk::RenderPass,
+        render_pass: &Arc<RenderPass>,
         images: &[vk::ImageView],
         extent: vk::Extent2D,
     ) -> Result<Self, FramebufferError> {
         let create_info = vk::FramebufferCreateInfo {
             flags: vk::FramebufferCreateFlags::empty(),
-            render_pass,
+            render_pass: render_pass.raw,
             attachment_count: images.len() as u32,
             p_attachments: images.as_ptr(),
             width: extent.width,
@@ -62,7 +71,12 @@ impl Framebuffer {
                 .create_framebuffer(&create_info, None)
                 .map_err(FramebufferError::UnableToCreateFramebuffer)?
         };
-        Ok(Self { raw, vk_dev })
+        Ok(Self {
+            raw,
+            extent,
+            render_pass: render_pass.clone(),
+            vk_dev,
+        })
     }
 }
 

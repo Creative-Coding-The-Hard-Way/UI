@@ -11,6 +11,9 @@ pub struct Image {
     /// The Vulkan image handle.
     pub raw: vk::Image,
 
+    /// The create_info used to create the image.
+    pub create_info: vk::ImageCreateInfo,
+
     /// A region of allocated memory which is bound to the image.
     pub allocation: Allocation,
 
@@ -51,6 +54,7 @@ impl Image {
 
         Ok(Self {
             raw,
+            create_info: *create_info,
             allocation,
             vk_alloc,
             vk_dev,

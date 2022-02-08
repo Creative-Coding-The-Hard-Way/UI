@@ -1,48 +1,172 @@
 //! This module defines the main application initialization, event loop, and
 //! rendering.
-//!
-use anyhow::Result;
+
+use ccthw::{
+    frame_pipeline::{FrameError, FramePipeline},
+    glfw_window::GlfwWindow,
+    multisample_renderpass::MultisampleRenderpass,
+    timing::FrameRateLimit,
+    vulkan::{self, Framebuffer, MemoryAllocator, RenderDevice},
+};
+use ::{anyhow::Result, std::sync::Arc};
 
 // The main application state.
 pub struct Application {
-    line: String,
+    // renderers
+    msaa_renderpass: MultisampleRenderpass,
+    framebuffers: Vec<Framebuffer>,
+
+    // app state
+    fps_limit: FrameRateLimit,
+    paused: bool,
+    swapchain_needs_rebuild: bool,
+
+    // vulkan core
+    frame_pipeline: FramePipeline,
+    vk_dev: Arc<RenderDevice>,
+    vk_alloc: Arc<dyn MemoryAllocator>,
+    glfw_window: GlfwWindow,
 }
 
 impl Application {
     /// Build a new instance of the application.
-    ///
-    /// Returns `Err()` if anything goes wrong while building the app.
     pub fn new() -> Result<Self> {
+        let mut glfw_window = GlfwWindow::new("Swapchain")?;
+        glfw_window.window.set_key_polling(true);
+        glfw_window.window.set_framebuffer_size_polling(true);
+
+        // Create the vulkan render device
+        let vk_dev = Arc::new(glfw_window.create_vulkan_device()?);
+        let vk_alloc = vulkan::create_default_allocator(vk_dev.clone());
+
+        // Create per-frame resources and the renderpass
+        let frame_pipeline = FramePipeline::new(vk_dev.clone())?;
+        let msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
+            vk_dev.clone(),
+            vk_alloc.clone(),
+        )?;
+        let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
+
         Ok(Self {
-            line: String::from("y"),
+            msaa_renderpass,
+            framebuffers,
+
+            fps_limit: FrameRateLimit::new(60, 30),
+            paused: false,
+            swapchain_needs_rebuild: false,
+
+            frame_pipeline,
+            vk_dev,
+            vk_alloc,
+            glfw_window,
         })
     }
 
     /// Run the application, blocks until the main event loop exits.
     pub fn run(mut self) -> Result<()> {
-        while self.line.eq_ignore_ascii_case("y") {
-            self.update()?;
+        let event_receiver = self.glfw_window.take_event_receiver()?;
+        while !self.glfw_window.window.should_close() {
+            self.fps_limit.start_frame();
+            for (_, event) in
+                self.glfw_window.flush_window_events(&event_receiver)
+            {
+                self.handle_event(event)?;
+            }
+            if self.swapchain_needs_rebuild {
+                self.rebuild_swapchain_resources()?;
+                self.swapchain_needs_rebuild = false;
+            }
+            if !self.paused {
+                let result = self.compose_frame();
+                match result {
+                    Err(FrameError::SwapchainNeedsRebuild) => {
+                        self.swapchain_needs_rebuild = true;
+                    }
+                    _ => result?,
+                }
+            }
+            self.fps_limit.sleep_to_limit();
         }
         Ok(())
     }
 
-    fn update(&mut self) -> Result<()> {
-        use std::io::{self, Write};
+    /// Render the applications state in in a three-step process.
+    fn compose_frame(&mut self) -> Result<(), FrameError> {
+        let (index, cmd) = self.frame_pipeline.begin_frame()?;
 
-        // write the prompt
-        println!("Should the app continue to run? (y\\n)");
-        print!("-> ");
-        let _ = io::stdout().flush();
+        unsafe {
+            self.msaa_renderpass.begin_renderpass_inline(
+                cmd,
+                &self.framebuffers[index],
+                [0.0, 0.0, 0.0, 1.0],
+            );
 
-        // get input
-        self.line.clear();
-        io::stdin().read_line(&mut self.line)?;
-        self.line = self.line.trim().to_string();
+            // TODO: add render commands here
 
-        // update!
-        println!("you said '{}'", self.line);
-        println!("----------------------------------------------------------");
-        println!("");
+            self.msaa_renderpass.end_renderpass(cmd);
+        };
+
+        self.frame_pipeline.end_frame(index)
+    }
+
+    /// Rebuild the swapchain and any dependent resources.
+    fn rebuild_swapchain_resources(&mut self) -> Result<()> {
+        if self.paused {
+            self.glfw_window.glfw.wait_events();
+            return Ok(());
+        }
+        unsafe {
+            self.vk_dev.logical_device.device_wait_idle()?;
+        }
+        let (w, h) = self.glfw_window.window.get_framebuffer_size();
+        self.vk_dev.rebuild_swapchain((w as u32, h as u32))?;
+
+        self.frame_pipeline.rebuild_swapchain_resources()?;
+        self.msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
+            self.vk_dev.clone(),
+            self.vk_alloc.clone(),
+        )?;
+        self.framebuffers =
+            self.msaa_renderpass.create_swapchain_framebuffers()?;
+
         Ok(())
+    }
+
+    /// Handle a GLFW window event.
+    fn handle_event(&mut self, event: glfw::WindowEvent) -> Result<()> {
+        use glfw::{Action, Key, Modifiers, WindowEvent};
+        match event {
+            WindowEvent::Close => {
+                self.glfw_window.window.set_should_close(true);
+            }
+            WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                self.glfw_window.window.set_should_close(true);
+            }
+            WindowEvent::Key(
+                Key::Space,
+                _,
+                Action::Press,
+                Modifiers::Control,
+            ) => {
+                self.glfw_window.toggle_fullscreen()?;
+            }
+            WindowEvent::FramebufferSize(w, h) => {
+                self.paused = w == 0 || h == 0;
+                self.swapchain_needs_rebuild = true;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+impl Drop for Application {
+    fn drop(&mut self) {
+        unsafe {
+            self.vk_dev
+                .logical_device
+                .device_wait_idle()
+                .expect("error while waiting for graphics device idle");
+        }
     }
 }
