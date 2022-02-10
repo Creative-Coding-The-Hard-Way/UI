@@ -15,4 +15,7 @@ pub enum ImageError {
 
     #[error("Unable to create Image View")]
     UnableToCreateView(#[source] vk::Result),
+
+    #[error("Unable to create image sampler")]
+    UnableToCreateSampler(#[source] vk::Result),
 }

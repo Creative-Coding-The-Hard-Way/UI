@@ -108,6 +108,13 @@ pub(super) fn create_pipeline(
                 stage_flags: vk::ShaderStageFlags::VERTEX,
                 ..Default::default()
             },
+            vk::DescriptorSetLayoutBinding {
+                binding: 2,
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                ..Default::default()
+            },
         ],
     )?);
     let pipeline_layout = Arc::new(PipelineLayout::new(

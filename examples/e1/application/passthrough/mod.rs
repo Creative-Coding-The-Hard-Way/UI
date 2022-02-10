@@ -5,6 +5,7 @@ use std::{mem::size_of, sync::Arc};
 use anyhow::Result;
 use ash::vk;
 use ccthw::{
+    asset_loader::CombinedImageSampler,
     math::projections,
     multisample_renderpass::MultisampleRenderpass,
     vulkan::{
@@ -17,6 +18,7 @@ use ccthw::{
 #[derive(Debug, Copy, Clone)]
 pub struct Vertex2D {
     pub pos: [f32; 2],
+    pub uv: [f32; 2],
     pub rgba: [f32; 4],
 }
 
@@ -37,6 +39,7 @@ pub struct Passthrough {
 impl Passthrough {
     pub fn new(
         msaa_renderpass: &MultisampleRenderpass,
+        texture: &CombinedImageSampler,
         vk_alloc: Arc<dyn MemoryAllocator>,
         vk_dev: Arc<RenderDevice>,
     ) -> Result<Self, VulkanError> {
@@ -52,6 +55,10 @@ impl Passthrough {
                 },
                 vk::DescriptorPoolSize {
                     ty: vk::DescriptorType::UNIFORM_BUFFER,
+                    descriptor_count: 1,
+                },
+                vk::DescriptorPoolSize {
+                    ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
                     descriptor_count: 1,
                 },
             ],
@@ -101,6 +108,11 @@ impl Passthrough {
                 1,
                 &uniform_data.raw,
                 vk::DescriptorType::UNIFORM_BUFFER,
+            );
+            descriptor_set.bind_combined_image_sampler(
+                2,
+                &texture.image_view,
+                &texture.sampler,
             );
         }
 

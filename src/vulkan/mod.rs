@@ -23,7 +23,7 @@ pub use self::{
         LockedMemoryAllocator, MemoryAllocator, PassthroughAllocator,
     },
     framebuffer::Framebuffer,
-    image::{Image, ImageView},
+    image::{Image, ImageView, Sampler},
     instance::Instance,
     pipeline::{Pipeline, PipelineLayout, ShaderModule},
     render_device::{GpuQueue, RenderDevice},

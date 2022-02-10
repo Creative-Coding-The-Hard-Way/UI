@@ -4,6 +4,7 @@
 mod passthrough;
 
 use ccthw::{
+    asset_loader::AssetLoader,
     frame_pipeline::{FrameError, FramePipeline},
     glfw_window::GlfwWindow,
     multisample_renderpass::MultisampleRenderpass,
@@ -25,6 +26,7 @@ pub struct Application {
     fps_limit: FrameRateLimit,
     paused: bool,
     swapchain_needs_rebuild: bool,
+    asset_loader: AssetLoader,
 
     // vulkan core
     frame_pipeline: FramePipeline,
@@ -44,6 +46,10 @@ impl Application {
         let vk_dev = Arc::new(glfw_window.create_vulkan_device()?);
         let vk_alloc = vulkan::create_default_allocator(vk_dev.clone());
 
+        let mut asset_loader =
+            AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
+        let texture = asset_loader.read_texture("assets/example1.jpg")?;
+
         // Create per-frame resources and the renderpass
         let frame_pipeline = FramePipeline::new(vk_dev.clone())?;
 
@@ -55,33 +61,40 @@ impl Application {
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
         let mut passthrough = Passthrough::new(
             &msaa_renderpass,
+            &texture,
             vk_alloc.clone(),
             vk_dev.clone(),
         )?;
         passthrough.push_vertices(&[
             Vertex2D {
-                pos: [0.0, -50.0],
-                rgba: [1.0, 1.0, 1.0, 1.0],
+                pos: [-150.0, -150.0],
+                uv: [0.0, 0.0],
+                rgba: [1.0, 1.0, 0.8, 1.0],
             },
             Vertex2D {
-                pos: [50.0, 50.0],
-                rgba: [1.0, 1.0, 1.0, 1.0],
+                pos: [-150.0, 150.0],
+                uv: [0.0, 1.0],
+                rgba: [1.0, 1.0, 0.8, 1.0],
             },
             Vertex2D {
-                pos: [-50.0, 50.0],
-                rgba: [1.0, 1.0, 1.0, 1.0],
+                pos: [150.0, 150.0],
+                uv: [1.0, 1.0],
+                rgba: [1.0, 1.0, 0.8, 1.0],
             },
             Vertex2D {
-                pos: [50.0, 50.0],
-                rgba: [1.0, 0.0, 0.0, 1.0],
+                pos: [-150.0, -150.0],
+                uv: [0.0, 0.0],
+                rgba: [0.8, 1.0, 1.0, 1.0],
             },
             Vertex2D {
-                pos: [-50.0, 50.0],
-                rgba: [0.0, 1.0, 0.0, 1.0],
+                pos: [150.0, 150.0],
+                uv: [1.0, 1.0],
+                rgba: [0.8, 1.0, 1.0, 1.0],
             },
             Vertex2D {
-                pos: [100.0, 100.0],
-                rgba: [0.0, 0.0, 1.0, 1.0],
+                pos: [150.0, -150.0],
+                uv: [1.0, 0.0],
+                rgba: [0.8, 1.0, 1.0, 1.0],
             },
         ])?;
 
@@ -93,6 +106,7 @@ impl Application {
             fps_limit: FrameRateLimit::new(60, 30),
             paused: false,
             swapchain_needs_rebuild: false,
+            asset_loader,
 
             frame_pipeline,
             vk_dev,
