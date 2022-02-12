@@ -3,7 +3,7 @@
 
 struct Vertex
 {
-    float x, y;
+    float x, y, z;
     float u, v;
     float r, g, b, a;
 };
@@ -20,5 +20,5 @@ void main() {
     Vertex vert = sbo.data[gl_VertexIndex];
     vertex_color = vec4(vert.r, vert.g, vert.b, vert.a);
     uv = vec2(vert.u, vert.v);
-    gl_Position = ubo.projection * vec4(vert.x, vert.y, 0.0, 1.0);
+    gl_Position = ubo.projection * vec4(vert.x, vert.y, vert.z, 1.0);
 }

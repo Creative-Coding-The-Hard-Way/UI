@@ -17,7 +17,7 @@ use ccthw::{
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vertex2D {
-    pub pos: [f32; 2],
+    pub pos: [f32; 3],
     pub uv: [f32; 2],
     pub rgba: [f32; 4],
 }

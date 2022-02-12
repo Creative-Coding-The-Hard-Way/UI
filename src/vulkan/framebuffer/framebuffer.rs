@@ -34,7 +34,7 @@ impl Framebuffer {
             |swapchain| -> Result<Vec<Self>, FramebufferError> {
                 let mut framebuffers = vec![];
                 for i in 0..swapchain.image_views.len() {
-                    let framebuffer = Self::with_color_attachments(
+                    let framebuffer = Self::with_attachments(
                         vk_dev.clone(),
                         render_pass,
                         &[swapchain.image_views[i]],
@@ -49,7 +49,7 @@ impl Framebuffer {
     }
 
     /// Create a single framebuffer with a color attachment.
-    pub fn with_color_attachments(
+    pub fn with_attachments(
         vk_dev: Arc<RenderDevice>,
         render_pass: &Arc<RenderPass>,
         images: &[vk::ImageView],

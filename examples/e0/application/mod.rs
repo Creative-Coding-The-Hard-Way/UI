@@ -138,6 +138,7 @@ impl Application {
                 cmd,
                 &self.framebuffers[index],
                 [0.0, 0.0, 0.0, 1.0],
+                1.0,
             );
             self.passthrough.write_commands(cmd)?;
             self.msaa_renderpass.end_renderpass(cmd);

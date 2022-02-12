@@ -26,7 +26,7 @@ pub struct Application {
     fps_limit: FrameRateLimit,
     paused: bool,
     swapchain_needs_rebuild: bool,
-    asset_loader: AssetLoader,
+    _asset_loader: AssetLoader,
 
     // vulkan core
     frame_pipeline: FramePipeline,
@@ -66,35 +66,37 @@ impl Application {
             vk_dev.clone(),
         )?;
         passthrough.push_vertices(&[
+            // render the 'front'
             Vertex2D {
-                pos: [-150.0, -150.0],
+                pos: [-50.0, -50.0, 0.0],
+                uv: [0.0, 0.0],
+                rgba: [0.2, 0.2, 0.2, 1.0],
+            },
+            Vertex2D {
+                pos: [-50.0, 50.0, 0.0],
+                uv: [0.0, 1.0],
+                rgba: [0.2, 0.2, 0.2, 1.0],
+            },
+            Vertex2D {
+                pos: [50.0, 50.0, 0.0],
+                uv: [1.0, 1.0],
+                rgba: [0.2, 0.2, 0.2, 1.0],
+            },
+            // render the 'back'
+            Vertex2D {
+                pos: [-150.0, -150.0, 0.5],
                 uv: [0.0, 0.0],
                 rgba: [1.0, 1.0, 0.8, 1.0],
             },
             Vertex2D {
-                pos: [-150.0, 150.0],
+                pos: [-150.0, 150.0, 0.5],
                 uv: [0.0, 1.0],
                 rgba: [1.0, 1.0, 0.8, 1.0],
             },
             Vertex2D {
-                pos: [150.0, 150.0],
+                pos: [150.0, 150.0, 0.5],
                 uv: [1.0, 1.0],
                 rgba: [1.0, 1.0, 0.8, 1.0],
-            },
-            Vertex2D {
-                pos: [-150.0, -150.0],
-                uv: [0.0, 0.0],
-                rgba: [0.8, 1.0, 1.0, 1.0],
-            },
-            Vertex2D {
-                pos: [150.0, 150.0],
-                uv: [1.0, 1.0],
-                rgba: [0.8, 1.0, 1.0, 1.0],
-            },
-            Vertex2D {
-                pos: [150.0, -150.0],
-                uv: [1.0, 0.0],
-                rgba: [0.8, 1.0, 1.0, 1.0],
             },
         ])?;
 
@@ -106,7 +108,7 @@ impl Application {
             fps_limit: FrameRateLimit::new(60, 30),
             paused: false,
             swapchain_needs_rebuild: false,
-            asset_loader,
+            _asset_loader: asset_loader,
 
             frame_pipeline,
             vk_dev,
@@ -152,6 +154,7 @@ impl Application {
                 cmd,
                 &self.framebuffers[index],
                 [0.0, 0.0, 0.0, 1.0],
+                1.0,
             );
             self.passthrough.write_commands(cmd)?;
             self.msaa_renderpass.end_renderpass(cmd);

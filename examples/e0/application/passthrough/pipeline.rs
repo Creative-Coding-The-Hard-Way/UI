@@ -88,6 +88,12 @@ pub(super) fn create_pipeline(
         attachment_count: 1,
         ..Default::default()
     };
+    let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo {
+        flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
+        depth_test_enable: 0,
+        stencil_test_enable: 0,
+        ..Default::default()
+    };
     let stages = [
         vertex_module.stage_create_info(vk::ShaderStageFlags::VERTEX),
         fragment_module.stage_create_info(vk::ShaderStageFlags::FRAGMENT),
@@ -116,6 +122,7 @@ pub(super) fn create_pipeline(
         p_rasterization_state: &raster_state,
         p_multisample_state: &multisample_state,
         p_color_blend_state: &blend_state,
+        p_depth_stencil_state: &depth_stencil_state,
         render_pass: msaa_renderpass.render_pass.raw,
         layout: pipeline_layout.raw,
         ..Default::default()

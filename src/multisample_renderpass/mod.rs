@@ -1,9 +1,13 @@
+mod depth_stencil_target;
 mod msaa_render_target;
+mod multisample_renderpass_error;
+mod render_pass;
 
+pub use multisample_renderpass_error::MultisampleRenderpassError;
 use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
 use crate::vulkan::{
-    errors::{FramebufferError, VulkanDebugError, VulkanError},
+    errors::{FramebufferError, VulkanDebugError},
     CommandBuffer, Framebuffer, ImageView, MemoryAllocator, RenderDevice,
     RenderPass, VulkanDebug,
 };
@@ -20,6 +24,9 @@ pub struct MultisampleRenderpass {
     /// pass into the output target specified by the framebuffer.
     pub msaa_render_target: Arc<ImageView>,
 
+    /// The depth target, used by pipelines that use depth testing.
+    pub depth_stencil_target: Arc<ImageView>,
+
     /// The vulkan device handle.
     pub vk_dev: Arc<RenderDevice>,
 }
@@ -30,19 +37,26 @@ impl MultisampleRenderpass {
     pub fn for_current_swapchain(
         vk_dev: Arc<RenderDevice>,
         vk_alloc: Arc<dyn MemoryAllocator>,
-    ) -> Result<Self, VulkanError> {
+    ) -> Result<Self, MultisampleRenderpassError> {
         let msaa_render_target =
             MultisampleRenderpass::create_msaa_render_target(
                 vk_dev.clone(),
                 vk_alloc.clone(),
             )?;
+        let depth_stencil_target = MultisampleRenderpass::create_depth_target(
+            &msaa_render_target,
+            vk_dev.clone(),
+            vk_alloc.clone(),
+        )?;
         let render_pass = MultisampleRenderpass::create_render_pass(
             &msaa_render_target,
+            &depth_stencil_target,
             vk_dev.clone(),
         )?;
         Ok(Self {
             render_pass,
             msaa_render_target,
+            depth_stencil_target,
             vk_dev,
         })
     }
@@ -59,9 +73,10 @@ impl MultisampleRenderpass {
                 for i in 0..swapchain.image_views.len() {
                     let views = vec![
                         self.msaa_render_target.raw,
+                        self.depth_stencil_target.raw,
                         swapchain.image_views[i],
                     ];
-                    let framebuffer = Framebuffer::with_color_attachments(
+                    let framebuffer = Framebuffer::with_attachments(
                         self.vk_dev.clone(),
                         &self.render_pass,
                         &views,
@@ -81,12 +96,21 @@ impl MultisampleRenderpass {
         command_buffer: &CommandBuffer,
         framebuffer: &Framebuffer,
         rgba_clear_color: [f32; 4],
+        clear_depth: f32,
     ) {
-        let clear_value = vk::ClearValue {
-            color: vk::ClearColorValue {
-                float32: rgba_clear_color,
+        let clear_values = [
+            vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: rgba_clear_color,
+                },
             },
-        };
+            vk::ClearValue {
+                depth_stencil: vk::ClearDepthStencilValue {
+                    depth: clear_depth,
+                    stencil: 0,
+                },
+            },
+        ];
         let render_pass_begin_info = vk::RenderPassBeginInfo {
             render_pass: framebuffer.render_pass.raw,
             framebuffer: framebuffer.raw,
@@ -94,8 +118,8 @@ impl MultisampleRenderpass {
                 offset: vk::Offset2D { x: 0, y: 0 },
                 extent: framebuffer.extent,
             },
-            clear_value_count: 1,
-            p_clear_values: &clear_value,
+            clear_value_count: clear_values.len() as u32,
+            p_clear_values: clear_values.as_ptr(),
             ..Default::default()
         };
         self.vk_dev.logical_device.cmd_begin_render_pass(
