@@ -1,3 +1,5 @@
+use std::ffi::c_void;
+
 use ash::{extensions::ext::DebugUtils, vk, Entry};
 
 use crate::{
@@ -64,7 +66,6 @@ impl Instance {
     pub fn create_logical_device(
         &self,
         physical_device: &vk::PhysicalDevice,
-        physical_device_features: vk::PhysicalDeviceFeatures,
         physical_device_extensions: &[String],
         queue_create_infos: &[vk::DeviceQueueCreateInfo],
     ) -> Result<ash::Device, InstanceError> {
@@ -72,10 +73,31 @@ impl Instance {
         let (_c_ext_names, ext_name_ptrs) =
             unsafe { to_os_ptrs(physical_device_extensions) };
 
+        let mut indexing_features =
+            vk::PhysicalDeviceDescriptorIndexingFeatures {
+                shader_sampled_image_array_non_uniform_indexing: vk::TRUE,
+                runtime_descriptor_array: vk::TRUE,
+                descriptor_binding_variable_descriptor_count: vk::TRUE,
+                ..Default::default()
+            };
+        let physical_device_features = vk::PhysicalDeviceFeatures2 {
+            p_next: &mut indexing_features
+                as *mut vk::PhysicalDeviceDescriptorIndexingFeatures
+                as *mut c_void,
+            features: vk::PhysicalDeviceFeatures {
+                geometry_shader: vk::TRUE,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
         let create_info = vk::DeviceCreateInfo {
+            p_next: (&physical_device_features)
+                as *const vk::PhysicalDeviceFeatures2
+                as *const c_void,
             queue_create_info_count: queue_create_infos.len() as u32,
             p_queue_create_infos: queue_create_infos.as_ptr(),
-            p_enabled_features: &physical_device_features,
+            p_enabled_features: std::ptr::null(),
             pp_enabled_layer_names: layer_name_ptrs.as_ptr(),
             enabled_layer_count: layer_name_ptrs.len() as u32,
             pp_enabled_extension_names: ext_name_ptrs.as_ptr(),

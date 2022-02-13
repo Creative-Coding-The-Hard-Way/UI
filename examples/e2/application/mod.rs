@@ -4,6 +4,7 @@
 mod passthrough;
 
 use ccthw::{
+    asset_loader::AssetLoader,
     frame_pipeline::{FrameError, FramePipeline},
     glfw_window::GlfwWindow,
     multisample_renderpass::MultisampleRenderpass,
@@ -25,6 +26,7 @@ pub struct Application {
     fps_limit: FrameRateLimit,
     paused: bool,
     swapchain_needs_rebuild: bool,
+    _asset_loader: AssetLoader,
 
     // vulkan core
     frame_pipeline: FramePipeline,
@@ -44,6 +46,11 @@ impl Application {
         let vk_dev = Arc::new(glfw_window.create_vulkan_device()?);
         let vk_alloc = vulkan::create_default_allocator(vk_dev.clone());
 
+        let mut asset_loader =
+            AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
+        let texture1 = asset_loader.read_texture("assets/example2_tex1.jpg")?;
+        let texture2 = asset_loader.read_texture("assets/example2_tex2.jpg")?;
+
         // Create per-frame resources and the renderpass
         let frame_pipeline = FramePipeline::new(vk_dev.clone())?;
 
@@ -55,69 +62,46 @@ impl Application {
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
         let mut passthrough = Passthrough::new(
             &msaa_renderpass,
+            &[texture1, texture2],
             vk_alloc.clone(),
             vk_dev.clone(),
         )?;
         passthrough.push_vertices(&[
-            /////////////////////////////
-            // Draw the /near/ quad first.
-            // Depth ranges from 0.0 on the near plane to 1.0 on the far plane,
-            // so this quad is as close as it can be
-            /////////////////////////////
             Vertex2D {
-                pos: [-50.0, -50.0, 0.0],
-                rgba: [0.2, 0.2, 0.2, 1.0],
+                pos: [-200.0, -200.0, 0.0],
+                uv: [0.0, 0.0],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+                tex_index: 0,
             },
             Vertex2D {
-                pos: [-50.0, 50.0, 0.0],
-                rgba: [0.2, 0.2, 0.2, 1.0],
+                pos: [-200.0, 200.0, 0.0],
+                uv: [0.0, 1.0],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+                tex_index: 0,
             },
             Vertex2D {
-                pos: [50.0, 50.0, 0.0],
-                rgba: [0.2, 0.2, 0.2, 1.0],
+                pos: [200.0, 200.0, 0.0],
+                uv: [1.0, 1.0],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+                tex_index: 0,
             },
             Vertex2D {
-                pos: [-50.0, -50.0, 0.0],
-                rgba: [0.2, 0.2, 0.2, 1.0],
+                pos: [-200.0, -200.0, 0.0],
+                uv: [0.0, 0.0],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+                tex_index: 1,
             },
             Vertex2D {
-                pos: [50.0, 50.0, 0.0],
-                rgba: [0.2, 0.2, 0.2, 1.0],
+                pos: [200.0, 200.0, 0.0],
+                uv: [1.0, 1.0],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+                tex_index: 1,
             },
             Vertex2D {
-                pos: [50.0, -50.0, 0.0],
-                rgba: [0.2, 0.2, 0.2, 1.0],
-            },
-            ////////////////////////////////////////
-            // Draw the /far/ quad second.
-            // If depth testing is disabled this will completely occlude the
-            // 'near' quad because of the draw order. BUT with depth testing
-            // enabled, the near quad's fragments will overwrite the
-            // foreground.
-            //////////////////////////////////////
-            Vertex2D {
-                pos: [-150.0, -150.0, 0.5],
-                rgba: [1.0, 1.0, 0.8, 1.0],
-            },
-            Vertex2D {
-                pos: [-150.0, 150.0, 0.5],
-                rgba: [1.0, 1.0, 0.8, 1.0],
-            },
-            Vertex2D {
-                pos: [150.0, 150.0, 0.5],
-                rgba: [1.0, 1.0, 0.8, 1.0],
-            },
-            Vertex2D {
-                pos: [-150.0, -150.0, 0.0],
-                rgba: [1.0, 1.0, 0.8, 1.0],
-            },
-            Vertex2D {
-                pos: [150.0, 150.0, 0.0],
-                rgba: [1.0, 1.0, 0.8, 1.0],
-            },
-            Vertex2D {
-                pos: [150.0, -150.0, 0.0],
-                rgba: [1.0, 1.0, 0.8, 1.0],
+                pos: [200.0, -200.0, 0.0],
+                uv: [1.0, 0.0],
+                rgba: [1.0, 1.0, 1.0, 1.0],
+                tex_index: 1,
             },
         ])?;
 
@@ -129,6 +113,7 @@ impl Application {
             fps_limit: FrameRateLimit::new(60, 30),
             paused: false,
             swapchain_needs_rebuild: false,
+            _asset_loader: asset_loader,
 
             frame_pipeline,
             vk_dev,

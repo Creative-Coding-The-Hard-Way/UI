@@ -53,7 +53,6 @@ impl RenderDevice {
         )?;
         let logical_device = instance.create_logical_device(
             &physical_device,
-            physical_device::required_features(),
             &physical_device::required_extensions(),
             &queue_family_indices.as_queue_create_infos(),
         )?;

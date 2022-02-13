@@ -5,6 +5,7 @@ use std::{mem::size_of, sync::Arc};
 use anyhow::Result;
 use ash::vk;
 use ccthw::{
+    asset_loader::CombinedImageSampler,
     math::projections,
     multisample_renderpass::MultisampleRenderpass,
     vulkan::{
@@ -17,7 +18,9 @@ use ccthw::{
 #[derive(Debug, Copy, Clone)]
 pub struct Vertex2D {
     pub pos: [f32; 3],
+    pub uv: [f32; 2],
     pub rgba: [f32; 4],
+    pub tex_index: i32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -26,6 +29,7 @@ pub struct UniformBufferData {
 }
 
 pub struct Passthrough {
+    pub textures: Vec<CombinedImageSampler>,
     pub pipeline: Pipeline,
     pub descriptor_pool: DescriptorPool,
     pub descriptor_set: DescriptorSet,
@@ -37,11 +41,15 @@ pub struct Passthrough {
 impl Passthrough {
     pub fn new(
         msaa_renderpass: &MultisampleRenderpass,
+        textures: &[CombinedImageSampler],
         vk_alloc: Arc<dyn MemoryAllocator>,
         vk_dev: Arc<RenderDevice>,
     ) -> Result<Self, VulkanError> {
-        let pipeline =
-            pipeline::create_pipeline(msaa_renderpass, vk_dev.clone())?;
+        let pipeline = pipeline::create_pipeline(
+            msaa_renderpass,
+            textures.len() as u32,
+            vk_dev.clone(),
+        )?;
         let descriptor_pool = DescriptorPool::new(
             vk_dev.clone(),
             1,
@@ -56,12 +64,16 @@ impl Passthrough {
                 },
                 vk::DescriptorPoolSize {
                     ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                    descriptor_count: 1,
+                    descriptor_count: textures.len() as u32,
                 },
             ],
         )?;
         let descriptor_set = descriptor_pool
-            .allocate(&pipeline.pipeline_layout.descriptor_layouts[0], 1)?
+            .allocate_with_variable_counts(
+                &pipeline.pipeline_layout.descriptor_layouts[0],
+                1,
+                textures.len() as u32,
+            )?
             .pop()
             .unwrap();
 
@@ -106,9 +118,18 @@ impl Passthrough {
                 &uniform_data.raw,
                 vk::DescriptorType::UNIFORM_BUFFER,
             );
+            for (i, texture) in textures.iter().enumerate() {
+                descriptor_set.bind_combined_image_sampler(
+                    2,
+                    i as u32,
+                    &texture.image_view,
+                    &texture.sampler,
+                );
+            }
         }
 
         Ok(Self {
+            textures: textures.to_owned(),
             pipeline,
             descriptor_pool,
             descriptor_set,
@@ -123,8 +144,11 @@ impl Passthrough {
         &mut self,
         msaa_renderpass: &MultisampleRenderpass,
     ) -> Result<(), VulkanError> {
-        self.pipeline =
-            pipeline::create_pipeline(msaa_renderpass, self.vk_dev.clone())?;
+        self.pipeline = pipeline::create_pipeline(
+            msaa_renderpass,
+            self.textures.len() as u32,
+            self.vk_dev.clone(),
+        )?;
 
         let extent = self.vk_dev.with_swapchain(|swapchain| swapchain.extent);
         let projection = projections::ortho(

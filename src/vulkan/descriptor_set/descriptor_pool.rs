@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{ffi::c_void, sync::Arc};
 
 use ash::vk;
 
@@ -41,37 +41,6 @@ impl DescriptorPool {
         Ok(Self { raw, vk_dev })
     }
 
-    /// Create a new descriptor pool with capacity for one descriptor per
-    /// swapchain image.
-    pub fn for_each_swapchain_image(
-        vk_dev: Arc<RenderDevice>,
-        uniform_buffers: u32,
-        storage_buffers: u32,
-        image_samplers: u32,
-    ) -> Result<Self, DescriptorSetError> {
-        let descriptor_count = vk_dev.swapchain_image_count();
-        let mut sizes = vec![];
-        if uniform_buffers > 0 {
-            sizes.push(vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: uniform_buffers,
-            });
-        }
-        if storage_buffers > 0 {
-            sizes.push(vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::STORAGE_BUFFER,
-                descriptor_count: storage_buffers,
-            });
-        }
-        if image_samplers > 0 {
-            sizes.push(vk::DescriptorPoolSize {
-                ty: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: image_samplers,
-            });
-        }
-        Self::new(vk_dev, descriptor_count, &sizes)
-    }
-
     /// Allocate descriptor sets from this pool.
     pub fn allocate(
         &self,
@@ -83,6 +52,52 @@ impl DescriptorPool {
             layouts.push(layout.raw);
         }
         let allocate_info = vk::DescriptorSetAllocateInfo {
+            descriptor_pool: self.raw,
+            descriptor_set_count: layouts.len() as u32,
+            p_set_layouts: layouts.as_ptr(),
+            ..Default::default()
+        };
+        let raw_sets = unsafe {
+            self.vk_dev
+                .logical_device
+                .allocate_descriptor_sets(&allocate_info)
+                .map_err(DescriptorSetError::UnableToAllocateDescriptors)?
+        };
+        let descriptor_sets: Vec<DescriptorSet> = raw_sets
+            .into_iter()
+            .map(|raw| DescriptorSet {
+                raw,
+                vk_dev: self.vk_dev.clone(),
+            })
+            .collect();
+        Ok(descriptor_sets)
+    }
+
+    /// Allocate descriptor sets from this pool when at least one descriptor
+    /// was created with the flag
+    /// `vk::DescriptorBindingFlags::VARIABLE_DESCRIPTOR_COUNT`.
+    pub fn allocate_with_variable_counts(
+        &self,
+        layout: &DescriptorSetLayout,
+        descriptor_set_count: u32,
+        variable_binding_count: u32,
+    ) -> Result<Vec<DescriptorSet>, DescriptorSetError> {
+        let mut descriptor_set_counts = vec![];
+        let mut layouts = vec![];
+        for _ in 0..descriptor_set_count {
+            layouts.push(layout.raw);
+            descriptor_set_counts.push(variable_binding_count);
+        }
+        let variable_descriptor_alloc_info =
+            vk::DescriptorSetVariableDescriptorCountAllocateInfo {
+                descriptor_set_count: layouts.len() as u32,
+                p_descriptor_counts: descriptor_set_counts.as_ptr(),
+                ..Default::default()
+            };
+        let allocate_info = vk::DescriptorSetAllocateInfo {
+            p_next: &variable_descriptor_alloc_info
+                as *const vk::DescriptorSetVariableDescriptorCountAllocateInfo
+                as *const c_void,
             descriptor_pool: self.raw,
             descriptor_set_count: layouts.len() as u32,
             p_set_layouts: layouts.as_ptr(),

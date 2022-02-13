@@ -8,14 +8,6 @@ use crate::vulkan::{
     WindowSurface,
 };
 
-/// Return the set of required device features for this application.
-pub fn required_features() -> vk::PhysicalDeviceFeatures {
-    vk::PhysicalDeviceFeatures {
-        geometry_shader: 1,
-        ..Default::default()
-    }
-}
-
 /// Return the set of required device extensions for this application
 pub fn required_extensions() -> Vec<String> {
     let swapchain = ash::extensions::khr::Swapchain::name()
@@ -50,9 +42,6 @@ fn is_device_suitable(
     let queues_supported =
         QueueFamilyIndices::find(ash, physical_device, window_surface).is_ok();
 
-    let features =
-        unsafe { ash.get_physical_device_features(*physical_device) };
-
     let extensions_supported = check_required_extensions(ash, &physical_device);
 
     let format_available = if extensions_supported {
@@ -75,7 +64,6 @@ fn is_device_suitable(
         && extensions_supported
         && format_available
         && presentation_mode_available
-        && features.geometry_shader == vk::TRUE
 }
 
 /// Fetch a vector of all missing device extensions based on the required

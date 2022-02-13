@@ -50,6 +50,7 @@ impl DescriptorSet {
     pub unsafe fn bind_combined_image_sampler(
         &self,
         binding: u32,
+        array_element: u32,
         image_view: &ImageView,
         sampler: &Sampler,
     ) {
@@ -61,7 +62,7 @@ impl DescriptorSet {
         let write = vk::WriteDescriptorSet {
             dst_set: self.raw,
             dst_binding: binding,
-            dst_array_element: 0,
+            dst_array_element: array_element,
             descriptor_count: 1,
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             p_image_info: &descriptor_image_info,
