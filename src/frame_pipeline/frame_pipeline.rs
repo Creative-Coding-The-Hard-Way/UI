@@ -52,6 +52,12 @@ impl FramePipeline {
         Ok((current_image, cmd))
     }
 
+    /// Borrow the current frame's command buffer. This is only valid between
+    /// calls to begin_frame and end_frame.
+    pub fn frame_cmds(&self, current_image: usize) -> &CommandBuffer {
+        &self.frames[current_image].command_buffer
+    }
+
     /// End rendering a single frame. This submits all commands on the graphics
     /// command buffer and schedules the swapchain image for presentation.
     pub fn end_frame(
