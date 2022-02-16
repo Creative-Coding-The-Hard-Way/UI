@@ -1,12 +1,15 @@
 use ::{
     anyhow::Result,
     ash::vk,
-    image::io::Reader,
+    image::{
+        imageops::{self, FilterType},
+        io::Reader,
+    },
     std::{path::Path, sync::Arc},
 };
 
 use crate::{
-    asset_loader::CombinedImageSampler,
+    asset_loader::{CombinedImageSampler, MipmapData},
     vulkan::{
         errors::VulkanError, GpuVec, Image, ImageView, MemoryAllocator,
         OneTimeSubmitCommandPool, RenderDevice, Sampler,
@@ -46,22 +49,33 @@ impl AssetLoader {
         })
     }
 
-    // Load a texture from the image at the given path.
-    pub fn read_texture<T>(
+    /// Create an all-white single-pixel texture. This is useful for when a
+    /// pipeline doesn't need a texture but still expects one to be bound.
+    pub fn blank_white(&mut self) -> Result<CombinedImageSampler> {
+        self.create_texture_with_data(&[MipmapData {
+            width: 1,
+            height: 1,
+            data: vec![0xFF, 0xFF, 0xFF, 0xFF],
+        }])
+    }
+
+    /// Give data to the texture manager to upload to the gpu and own as a
+    /// combined image sampler.
+    pub fn create_texture_with_data(
         &mut self,
-        path_to_texture_image: T,
-    ) -> Result<CombinedImageSampler>
-    where
-        T: AsRef<Path>,
-    {
-        let loaded = Reader::open(path_to_texture_image)?.decode()?;
-        let rgba = loaded.flipv().into_rgba8();
-        let (width, height) = (rgba.width(), rgba.height());
-        let vulkan_image = self.create_empty_2d(width, height)?;
+        mipmaps: &[MipmapData],
+    ) -> Result<CombinedImageSampler> {
+        let vulkan_image = self.create_empty_2d(
+            mipmaps[0].width,
+            mipmaps[0].height,
+            mipmaps.len() as u32,
+        )?;
 
         self.staging_buffer.clear();
-        for v in rgba.as_raw() {
-            self.staging_buffer.push_back(*v)?;
+        for mipmap in mipmaps {
+            for byte in &mipmap.data {
+                self.staging_buffer.push_back(*byte)?;
+            }
         }
 
         self.command_pool
@@ -77,7 +91,7 @@ impl AssetLoader {
                     subresource_range: vk::ImageSubresourceRange {
                         aspect_mask: vk::ImageAspectFlags::COLOR,
                         base_mip_level: 0,
-                        level_count: 1,
+                        level_count: mipmaps.len() as u32,
                         base_array_layer: 0,
                         layer_count: 1,
                     },
@@ -93,30 +107,34 @@ impl AssetLoader {
                     &[prepare_write_barrier],
                 );
 
-                let buffer_image_copy = vk::BufferImageCopy {
-                    buffer_offset: 0,
-                    buffer_row_length: 0,
-                    buffer_image_height: 0,
-                    image_subresource: vk::ImageSubresourceLayers {
-                        aspect_mask: vk::ImageAspectFlags::COLOR,
-                        mip_level: 0,
-                        base_array_layer: 0,
-                        layer_count: 1,
-                    },
-                    image_offset: vk::Offset3D::default(),
-                    image_extent: vk::Extent3D {
-                        width,
-                        height,
-                        depth: 1,
-                    },
-                };
-                vk_dev.logical_device.cmd_copy_buffer_to_image(
-                    cmd,
-                    self.staging_buffer.buffer.raw,
-                    vulkan_image.raw,
-                    vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                    &[buffer_image_copy],
-                );
+                let mut buffer_offset = 0;
+                for (current_level, mipmap) in mipmaps.iter().enumerate() {
+                    let buffer_image_copy = vk::BufferImageCopy {
+                        buffer_offset,
+                        buffer_row_length: 0,
+                        buffer_image_height: 0,
+                        image_subresource: vk::ImageSubresourceLayers {
+                            aspect_mask: vk::ImageAspectFlags::COLOR,
+                            mip_level: current_level as u32,
+                            base_array_layer: 0,
+                            layer_count: 1,
+                        },
+                        image_offset: vk::Offset3D::default(),
+                        image_extent: vk::Extent3D {
+                            width: mipmap.width,
+                            height: mipmap.height,
+                            depth: 1,
+                        },
+                    };
+                    vk_dev.logical_device.cmd_copy_buffer_to_image(
+                        cmd,
+                        self.staging_buffer.buffer.raw,
+                        vulkan_image.raw,
+                        vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                        &[buffer_image_copy],
+                    );
+                    buffer_offset += mipmap.data.len() as u64;
+                }
 
                 let prepare_read_barrier = vk::ImageMemoryBarrier {
                     src_access_mask: vk::AccessFlags::TRANSFER_WRITE,
@@ -129,7 +147,7 @@ impl AssetLoader {
                     subresource_range: vk::ImageSubresourceRange {
                         aspect_mask: vk::ImageAspectFlags::COLOR,
                         base_mip_level: 0,
-                        level_count: 1,
+                        level_count: mipmaps.len() as u32,
                         base_array_layer: 0,
                         layer_count: 1,
                     },
@@ -155,10 +173,48 @@ impl AssetLoader {
         self.textures.push(texture.clone());
         Ok(texture)
     }
+
+    // Load a texture from the image at the given path.
+    // Mipmaps are automatically generated for each of the half-size images.
+    pub fn read_texture<T>(
+        &mut self,
+        path_to_texture_image: T,
+    ) -> Result<CombinedImageSampler>
+    where
+        T: AsRef<Path>,
+    {
+        let loaded = Reader::open(path_to_texture_image)?.decode()?;
+        let rgba = loaded.flipv().into_rgba8();
+        let (width, height) = (rgba.width(), rgba.height());
+
+        let mipmap_count = Self::compute_mipmap_count(width, height);
+        let mipmaps: Vec<_> = (0..mipmap_count)
+            .map(|i| {
+                let mipmap = imageops::resize(
+                    &rgba,
+                    (width >> i).max(1),
+                    (height >> i).max(1),
+                    FilterType::Triangle,
+                );
+                MipmapData {
+                    width: mipmap.width(),
+                    height: mipmap.height(),
+                    data: mipmap.into_raw(),
+                }
+            })
+            .collect();
+
+        self.create_texture_with_data(&mipmaps)
+    }
 }
 
 impl AssetLoader {
-    fn create_empty_2d(&mut self, width: u32, height: u32) -> Result<Image> {
+    fn create_empty_2d(
+        &mut self,
+        width: u32,
+        height: u32,
+        mip_levels: u32,
+    ) -> Result<Image> {
         let create_info = vk::ImageCreateInfo {
             flags: vk::ImageCreateFlags::empty(),
             image_type: vk::ImageType::TYPE_2D,
@@ -168,7 +224,7 @@ impl AssetLoader {
                 height,
                 depth: 1,
             },
-            mip_levels: 1,
+            mip_levels,
             array_layers: 1,
             samples: vk::SampleCountFlags::TYPE_1,
             tiling: vk::ImageTiling::OPTIMAL,
@@ -184,5 +240,28 @@ impl AssetLoader {
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
         )?;
         Ok(image)
+    }
+
+    /// Compute the number of layers, in addition to the original image, are
+    /// required for a complete mipmap stack.
+    fn compute_mipmap_count(width: u32, height: u32) -> u32 {
+        let max_dimension = (width as f32).max(height as f32);
+        let powers_of_two = max_dimension.log2().floor();
+        (powers_of_two + 1.0) as u32
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::AssetLoader;
+
+    #[test]
+    fn test_mipmap_count() {
+        assert_eq!(AssetLoader::compute_mipmap_count(1, 1), 1);
+        assert_eq!(AssetLoader::compute_mipmap_count(2, 1), 2);
+        assert_eq!(AssetLoader::compute_mipmap_count(1, 2), 2);
+        assert_eq!(AssetLoader::compute_mipmap_count(512, 64), 10);
+        assert_eq!(AssetLoader::compute_mipmap_count(513, 1023), 10);
+        assert_eq!(AssetLoader::compute_mipmap_count(513, 1025), 11);
     }
 }

@@ -1,4 +1,4 @@
-use crate::graphics2::{Vec2, Vec4};
+use crate::graphics2::{Vec2, Vec3, Vec4};
 
 /// The per-vertex data used by Graphics2.
 #[repr(C)]
@@ -41,9 +41,9 @@ pub struct Vertex {
 
 impl Vertex {
     /// Create a new 2D Vertex on the near clipping plane.
-    pub fn new_2d(pos: Vec2, rgba: Vec4, uv: Vec2, tex_index: i32) -> Vertex {
+    pub fn new(pos: Vec3, rgba: Vec4, uv: Vec2, tex_index: i32) -> Vertex {
         Self {
-            pos: [pos.x, pos.y, 0.0, 1.0],
+            pos: [pos.x, pos.y, pos.z, 1.0],
             rgba: rgba.into(),
             uv: uv.into(),
             tex_index,

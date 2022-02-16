@@ -8,7 +8,7 @@ use ccthw::{
     asset_loader::AssetLoader,
     frame_pipeline::{FrameError, FramePipeline},
     glfw_window::GlfwWindow,
-    graphics2::{Frame, Graphics2, Vec2},
+    graphics2::{Draw2D, Frame, Graphics2, LineArgs, QuadArgs, Vec2, Vec4},
     math::projections,
     multisample_renderpass::MultisampleRenderpass,
     timing::FrameRateLimit,
@@ -49,7 +49,6 @@ impl Application {
 
         let mut asset_loader =
             AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
-        let texture1 = asset_loader.read_texture("assets/example3_tex1.jpg")?;
 
         // Create per-frame resources and the renderpass
         let frame_pipeline = FramePipeline::new(vk_dev.clone())?;
@@ -62,7 +61,10 @@ impl Application {
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
         let graphics2 = Graphics2::new(
             &msaa_renderpass,
-            &[texture1],
+            &[
+                asset_loader.blank_white()?,
+                asset_loader.read_texture("assets/example3_tex1.jpg")?,
+            ],
             vk_alloc.clone(),
             vk_dev.clone(),
         )?;
@@ -151,7 +153,33 @@ impl Application {
 
     fn draw(&mut self, frame: &mut Frame) -> Result<()> {
         frame.set_view_projection(self.camera)?;
-        frame.draw_quad(Vec2::new(-200.0, 0.0), Vec2::new(150.0, 150.0), 0)?;
+        frame.draw_quad(QuadArgs {
+            center: Vec2::new(-200.0, 0.0),
+            dimensions: Vec2::new(150.0, 150.0),
+            texture_index: 1,
+            ..Default::default()
+        })?;
+        frame.draw_quad(QuadArgs {
+            center: Vec2::new(200.0, 0.0),
+            dimensions: Vec2::new(150.0, 150.0),
+            texture_index: 1,
+            angle: std::f32::consts::FRAC_PI_3,
+            ..Default::default()
+        })?;
+        frame.draw_line(LineArgs {
+            start: Vec2::new(350.0, 150.0),
+            end: Vec2::new(-350.0, 150.0),
+            width: 2.0,
+            rgba: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            ..Default::default()
+        })?;
+        frame.draw_line(LineArgs {
+            start: Vec2::new(350.0, -150.0),
+            end: Vec2::new(-350.0, -150.0),
+            width: 2.0,
+            rgba: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            ..Default::default()
+        })?;
         Ok(())
     }
 

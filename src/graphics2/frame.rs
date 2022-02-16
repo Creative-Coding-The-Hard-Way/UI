@@ -2,7 +2,7 @@ use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
 use crate::{
     asset_loader::CombinedImageSampler,
-    graphics2::{Vec2, Vec4, Vertex},
+    graphics2::Vertex,
     vulkan::{
         errors::VulkanError, Buffer, CommandBuffer, DescriptorPool,
         DescriptorSet, DescriptorSetLayout, GpuVec, MemoryAllocator,
@@ -23,6 +23,7 @@ pub struct Frame {
     uniform_data: Buffer,
     vertex_data: GpuVec<Vertex>,
     vertex_data_needs_rebound: bool,
+    index_data: GpuVec<u32>,
     vk_dev: Arc<RenderDevice>,
 }
 
@@ -67,6 +68,12 @@ impl Frame {
             vk::BufferUsageFlags::STORAGE_BUFFER,
             1, // initial buffer capacity
         )?;
+        let index_data = GpuVec::new(
+            vk_dev.clone(),
+            vk_alloc.clone(),
+            vk::BufferUsageFlags::INDEX_BUFFER,
+            500,
+        )?;
         let mut uniform_data = Buffer::new(
             vk_dev.clone(),
             vk_alloc.clone(),
@@ -96,6 +103,7 @@ impl Frame {
         Ok(Self {
             vertex_data,
             vertex_data_needs_rebound: true,
+            index_data,
             uniform_data,
             _descriptor_pool: descriptor_pool,
             descriptor_set,
@@ -115,56 +123,19 @@ impl Frame {
         Ok(())
     }
 
-    pub fn draw_quad(
+    /// Push vertices into the frame. Indices index into the given vertex slice.
+    pub fn push_vertices(
         &mut self,
-        center: Vec2,
-        dimensions: Vec2,
-        texture_index: i32,
+        vertices: &[Vertex],
+        indices: &[u32],
     ) -> Result<()> {
-        type Vec2 = nalgebra::Vector2<f32>;
-
-        let half_size = 0.5 * dimensions;
-        let (left, right) = (-half_size.x, half_size.x);
-        let (bottom, top) = (-half_size.y, half_size.y);
-        let (uv_left, uv_right) = (0.0, 1.0);
-        let (uv_bottom, uv_top) = (0.0, 1.0);
-        self.push_vertex(Vertex::new_2d(
-            center + Vec2::new(left, bottom),
-            Vec4::new(1.0, 1.0, 1.0, 1.0),
-            Vec2::new(uv_left, uv_bottom),
-            texture_index,
-        ))?;
-        self.push_vertex(Vertex::new_2d(
-            center + Vec2::new(left, top),
-            Vec4::new(1.0, 1.0, 1.0, 1.0),
-            Vec2::new(uv_left, uv_top),
-            texture_index,
-        ))?;
-        self.push_vertex(Vertex::new_2d(
-            center + Vec2::new(right, top),
-            Vec4::new(1.0, 1.0, 1.0, 1.0),
-            Vec2::new(uv_right, uv_top),
-            texture_index,
-        ))?;
-
-        self.push_vertex(Vertex::new_2d(
-            center + Vec2::new(right, top),
-            Vec4::new(1.0, 1.0, 1.0, 1.0),
-            Vec2::new(uv_right, uv_top),
-            texture_index,
-        ))?;
-        self.push_vertex(Vertex::new_2d(
-            center + Vec2::new(right, bottom),
-            Vec4::new(1.0, 1.0, 1.0, 1.0),
-            Vec2::new(uv_right, uv_bottom),
-            texture_index,
-        ))?;
-        self.push_vertex(Vertex::new_2d(
-            center + Vec2::new(left, bottom),
-            Vec4::new(1.0, 1.0, 1.0, 1.0),
-            Vec2::new(uv_left, uv_bottom),
-            texture_index,
-        ))?;
+        let base_index = self.vertex_data.len() as u32;
+        for vertex in vertices {
+            self.push_vertex(*vertex)?;
+        }
+        for index in indices {
+            self.index_data.push_back(base_index + index)?;
+        }
         Ok(())
     }
 }
@@ -197,17 +168,25 @@ impl Frame {
             &[self.descriptor_set.raw],
             &[],
         );
-        self.vk_dev.logical_device.cmd_draw(
+        self.vk_dev.logical_device.cmd_bind_index_buffer(
             cmd.raw,
-            self.vertex_data.len() as u32,
-            1, // index count
-            0, // first vertex
-            0, // first index
+            self.index_data.buffer.raw,
+            0,
+            vk::IndexType::UINT32,
+        );
+        self.vk_dev.logical_device.cmd_draw_indexed(
+            cmd.raw,
+            self.index_data.len() as u32,
+            1,
+            0,
+            0,
+            0,
         );
     }
 
     pub(super) fn clear(&mut self) {
         self.vertex_data.clear();
+        self.index_data.clear();
     }
 
     /// Add a vertex to the vertex buffer.

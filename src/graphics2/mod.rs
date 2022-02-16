@@ -1,6 +1,7 @@
 //! Graphics 2 is a high-level module for efficently rendering immediate-mode
 //! graphics which change every frame.
 
+mod draw2d;
 mod frame;
 mod graphics2_error;
 mod pipeline;
@@ -9,9 +10,15 @@ mod vertex;
 use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
 pub type Vec2 = nalgebra::Vector2<f32>;
+pub type Vec3 = nalgebra::Vector3<f32>;
 pub type Vec4 = nalgebra::Vector4<f32>;
 
-pub use self::{frame::Frame, graphics2_error::Graphics2Error, vertex::Vertex};
+pub use self::{
+    draw2d::{Draw2D, LineArgs, QuadArgs},
+    frame::Frame,
+    graphics2_error::Graphics2Error,
+    vertex::Vertex,
+};
 use crate::{
     asset_loader::CombinedImageSampler,
     multisample_renderpass::MultisampleRenderpass,
