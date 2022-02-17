@@ -3,7 +3,7 @@ use ::{anyhow::Context, ash::vk, std::sync::Arc};
 use crate::{
     frame_pipeline::{FrameError, PerFrame},
     vulkan::{
-        errors::{SwapchainError, VulkanError},
+        errors::{FenceError, SwapchainError, VulkanError},
         sync::SemaphorePool,
         CommandBuffer, RenderDevice, VulkanDebug,
     },
@@ -82,6 +82,15 @@ impl FramePipeline {
                 .set_debug_name(format!("Frame {}", i))
                 .map_err(VulkanError::VulkanDebugError)?;
             self.frames.push(frame);
+        }
+        Ok(())
+    }
+
+    /// Wait for every current frame's queue submission fence to be signaled.
+    /// This stalls all rendering until the next call to begin_frame.
+    pub fn wait_for_all_frames(&mut self) -> Result<(), FenceError> {
+        for frame in &mut self.frames {
+            frame.queue_submit_fence.wait_and_reset()?
         }
         Ok(())
     }
@@ -212,5 +221,12 @@ impl FramePipeline {
             }
         })?;
         Ok(())
+    }
+}
+
+impl Drop for FramePipeline {
+    fn drop(&mut self) {
+        self.wait_for_all_frames()
+            .expect("Unable to wait for all frames to complete!");
     }
 }

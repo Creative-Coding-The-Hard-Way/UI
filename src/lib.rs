@@ -1,6 +1,7 @@
 mod markdown;
 
 pub mod asset_loader;
+pub mod demo;
 pub mod frame_pipeline;
 pub mod glfw_window;
 pub mod graphics2;

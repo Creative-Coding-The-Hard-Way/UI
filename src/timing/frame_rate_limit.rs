@@ -24,6 +24,11 @@ impl FrameRateLimit {
         }
     }
 
+    /// Change the targeted FPS count.
+    pub fn set_target_fps(&mut self, target_fps: u32) {
+        self.target_duration = Duration::from_secs(1) / target_fps;
+    }
+
     /// Call at the beginning of each frame to establish the start-point when
     /// computing elapsed time.
     pub fn start_frame(&mut self) {

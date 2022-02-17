@@ -1,67 +1,146 @@
-mod application;
+use ccthw::timing::FrameRateLimit;
+use ::{
+    anyhow::{Context, Result},
+    ccthw::{
+        asset_loader::AssetLoader,
+        demo::{run_application, State},
+        glfw_window::GlfwWindow,
+        graphics2::{Draw2D, Graphics2, LineArgs, QuadArgs, Vec2, Vec4},
+        math::projections,
+        multisample_renderpass::MultisampleRenderpass,
+        vulkan::{Framebuffer, MemoryAllocator, RenderDevice},
+    },
+    std::sync::Arc,
+};
 
-use std::fmt::Write as FmtWrite;
+struct Example {
+    msaa_renderpass: MultisampleRenderpass,
+    framebuffers: Vec<Framebuffer>,
+    graphics2: Graphics2,
+    camera: nalgebra::Matrix4<f32>,
+    _asset_loader: AssetLoader,
+    vk_alloc: Arc<dyn MemoryAllocator>,
+    vk_dev: Arc<RenderDevice>,
+}
 
-use anyhow::{Context, Result};
-use application::Application;
-use flexi_logger::{DeferredNow, Logger, Record};
-use textwrap::{termwidth, Options};
-
-/// Application entry point. Execute the run() function and print a
-/// human-readable error on the terminal if anything goes wrong.
-fn main() -> Result<()> {
-    let result = run();
-    if let Err(ref error) = result {
-        log::error!(
-            "Application exited unsuccessfully!\n{:?}\n\nroot cause: {:?}",
-            error,
-            error.root_cause()
-        );
+impl State for Example {
+    fn init(
+        _window: &mut GlfwWindow,
+        fps_limit: &mut FrameRateLimit,
+        vk_dev: &Arc<RenderDevice>,
+        vk_alloc: &Arc<dyn MemoryAllocator>,
+    ) -> Result<Self> {
+        fps_limit.set_target_fps(120);
+        let msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
+            vk_dev.clone(),
+            vk_alloc.clone(),
+        )?;
+        let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
+        let mut asset_loader =
+            AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
+        let graphics2 = Graphics2::new(
+            &msaa_renderpass,
+            &[
+                asset_loader.blank_white()?,
+                asset_loader.read_texture("assets/example3_tex1.jpg")?,
+            ],
+            vk_alloc.clone(),
+            vk_dev.clone(),
+        )?;
+        Ok(Self {
+            msaa_renderpass,
+            framebuffers,
+            graphics2,
+            camera: nalgebra::Matrix4::identity(),
+            _asset_loader: asset_loader,
+            vk_alloc: vk_alloc.clone(),
+            vk_dev: vk_dev.clone(),
+        })
     }
-    result
+
+    fn rebuild_swapchain_resources(
+        &mut self,
+        _window: &GlfwWindow,
+        framebuffer_size: (u32, u32),
+    ) -> Result<()> {
+        self.msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
+            self.vk_dev.clone(),
+            self.vk_alloc.clone(),
+        )?;
+        self.framebuffers =
+            self.msaa_renderpass.create_swapchain_framebuffers()?;
+        self.graphics2
+            .rebuild_swapchain_resources(&self.msaa_renderpass)?;
+        let (half_width, half_height) = (
+            framebuffer_size.0 as f32 / 2.0,
+            framebuffer_size.1 as f32 / 2.0,
+        );
+        self.camera = projections::ortho(
+            -half_width,
+            half_width,
+            -half_height,
+            half_height,
+            0.0,
+            1.0,
+        );
+        Ok(())
+    }
+
+    fn update(
+        &mut self,
+        index: usize,
+        cmds: &ccthw::vulkan::CommandBuffer,
+    ) -> Result<()> {
+        unsafe {
+            self.msaa_renderpass.begin_renderpass_inline(
+                cmds,
+                &self.framebuffers[index],
+                [0.05, 0.05, 0.05, 1.0],
+                1.0,
+            );
+        }
+
+        let mut frame = self
+            .graphics2
+            .acquire_frame(index)
+            .with_context(|| "unable to acquire graphics2 frame")?;
+        frame.set_view_projection(self.camera)?;
+        frame.draw_quad(QuadArgs {
+            center: Vec2::new(-200.0, 0.0),
+            dimensions: Vec2::new(150.0, 150.0),
+            texture_index: 1,
+            ..Default::default()
+        })?;
+        frame.draw_quad(QuadArgs {
+            center: Vec2::new(200.0, 0.0),
+            dimensions: Vec2::new(150.0, 150.0),
+            texture_index: 1,
+            angle: std::f32::consts::FRAC_PI_3,
+            ..Default::default()
+        })?;
+        frame.draw_line(LineArgs {
+            start: Vec2::new(350.0, 150.0),
+            end: Vec2::new(-350.0, 150.0),
+            width: 2.0,
+            rgba: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            ..Default::default()
+        })?;
+        frame.draw_line(LineArgs {
+            start: Vec2::new(350.0, -150.0),
+            end: Vec2::new(-350.0, -150.0),
+            width: 2.0,
+            rgba: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            ..Default::default()
+        })?;
+
+        unsafe {
+            self.graphics2.complete_frame(cmds, frame, index)?;
+            self.msaa_renderpass.end_renderpass(cmds);
+        }
+        Ok(())
+    }
 }
 
-/// All application logic. Typically just setup the logger and any other
-/// static resources, then build an application instance of some sort.
-fn run() -> Result<()> {
-    Logger::with_env_or_str("info")
-        .format(multiline_format)
-        .start()?;
-    log::info!(
-        "adjust log level by setting the RUST_LOG env var - RUST_LOG = 'info'"
-    );
-
-    Application::new()
-        .context("failed to construct the application!")?
-        .run()
-        .context("application exited with an error")
-}
-
-/// A formatting function for logs which automaticaly wrap to the terminal
-/// width.
-fn multiline_format(
-    w: &mut dyn std::io::Write,
-    now: &mut DeferredNow,
-    record: &Record,
-) -> Result<(), std::io::Error> {
-    let size = termwidth().min(74);
-    let wrap_options = Options::new(size)
-        .initial_indent("┏ ")
-        .subsequent_indent("┃ ");
-
-    let mut full_line = String::new();
-    writeln!(
-        full_line,
-        "{} [{}] [{}:{}]",
-        record.level(),
-        now.now().format("%H:%M:%S%.6f"),
-        record.file().unwrap_or("<unnamed>"),
-        record.line().unwrap_or(0),
-    )
-    .expect("unable to format first log line");
-
-    write!(&mut full_line, "{}", &record.args())
-        .expect("unable to format log!");
-
-    writeln!(w, "{}", textwrap::fill(&full_line, wrap_options))
+fn main() -> Result<()> {
+    run_application::<Example>()
 }
