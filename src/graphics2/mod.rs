@@ -5,6 +5,7 @@ mod draw2d;
 mod frame;
 mod graphics2_error;
 mod pipeline;
+mod text;
 mod vertex;
 
 use ::{anyhow::Result, ash::vk, std::sync::Arc};
@@ -17,6 +18,7 @@ pub use self::{
     draw2d::{Draw2D, LineArgs, QuadArgs},
     frame::Frame,
     graphics2_error::Graphics2Error,
+    text::Text,
     vertex::Vertex,
 };
 use crate::{

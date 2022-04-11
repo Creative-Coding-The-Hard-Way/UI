@@ -1,10 +1,11 @@
+use ccthw::graphics2::{QuadArgs, Text};
 use ::{
     anyhow::{Context, Result},
     ccthw::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        graphics2::{Draw2D, Graphics2, LineArgs, Vec2},
+        graphics2::{Draw2D, Graphics2, LineArgs, Vec2, Vec4},
         math::projections,
         multisample_renderpass::MultisampleRenderpass,
         timing::FrameRateLimit,
@@ -38,9 +39,14 @@ impl State for Example {
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
         let mut asset_loader =
             AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
+        let text =
+            Text::from_font_file("assets/MontserratAlternates-Regular.ttf")?;
         let graphics2 = Graphics2::new(
             &msaa_renderpass,
-            &[asset_loader.blank_white()?],
+            &[
+                asset_loader.blank_white()?,
+                asset_loader.create_texture_with_data(&[text.rasterized])?,
+            ],
             vk_alloc.clone(),
             vk_dev.clone(),
         )?;
@@ -110,6 +116,12 @@ impl State for Example {
         frame.draw_line(LineArgs {
             start: Vec2::new(0.0, 10000.0),
             end: Vec2::new(0.0, -10000.0),
+            ..Default::default()
+        })?;
+        frame.draw_quad(QuadArgs {
+            center: Vec2::new(-256.0, 150.0),
+            dimensions: Vec2::new(2048.0, 768.0),
+            texture_index: 1,
             ..Default::default()
         })?;
 
