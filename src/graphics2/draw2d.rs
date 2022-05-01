@@ -10,6 +10,10 @@ pub struct QuadArgs {
     pub texture_index: i32,
     pub depth: f32,
     pub angle: f32, // th
+    pub uv_top: f32,
+    pub uv_bottom: f32,
+    pub uv_right: f32,
+    pub uv_left: f32,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -31,6 +35,10 @@ impl Default for QuadArgs {
             texture_index: 0,
             depth: 0.0,
             angle: 0.0,
+            uv_top: 1.0,
+            uv_bottom: 0.0,
+            uv_left: 0.0,
+            uv_right: 1.0,
         }
     }
 }
@@ -116,8 +124,8 @@ impl Draw2D for Frame {
         let top_right = rotation * Vec2::new(half_size.x, half_size.y);
         let top_left = rotation * Vec2::new(-half_size.x, half_size.y);
 
-        let (uv_left, uv_right) = (0.0, 1.0);
-        let (uv_bottom, uv_top) = (0.0, 1.0);
+        let (uv_left, uv_right) = (args.uv_left, args.uv_right);
+        let (uv_bottom, uv_top) = (args.uv_bottom, args.uv_top);
 
         self.push_vertices(
             &[

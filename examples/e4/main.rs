@@ -20,6 +20,7 @@ struct Example {
     graphics2: Graphics2,
     camera: nalgebra::Matrix4<f32>,
     _asset_loader: AssetLoader,
+    text: Text,
     vk_alloc: Arc<dyn MemoryAllocator>,
     vk_dev: Arc<RenderDevice>,
 }
@@ -45,7 +46,8 @@ impl State for Example {
             &msaa_renderpass,
             &[
                 asset_loader.blank_white()?,
-                asset_loader.create_texture_with_data(&[text.rasterized])?,
+                asset_loader
+                    .create_texture_with_data(&[text.rasterized.clone()])?,
             ],
             vk_alloc.clone(),
             vk_dev.clone(),
@@ -55,6 +57,7 @@ impl State for Example {
             framebuffers,
             graphics2,
             camera: nalgebra::Matrix4::identity(),
+            text,
             _asset_loader: asset_loader,
             vk_alloc: vk_alloc.clone(),
             vk_dev: vk_dev.clone(),
@@ -118,10 +121,22 @@ impl State for Example {
             end: Vec2::new(0.0, -10000.0),
             ..Default::default()
         })?;
+        //frame.draw_quad(QuadArgs {
+        //    center: Vec2::new(-256.0, 150.0),
+        //    dimensions: Vec2::new(2048.0, 768.0),
+        //    texture_index: 1,
+        //    ..Default::default()
+        //})?;
+        //
+        let coords = self.text.tex_coords.get(&'m').unwrap();
         frame.draw_quad(QuadArgs {
-            center: Vec2::new(-256.0, 150.0),
-            dimensions: Vec2::new(2048.0, 768.0),
+            center: Vec2::new(100.0, 100.0),
+            dimensions: Vec2::new(100.0, 100.0),
             texture_index: 1,
+            uv_top: coords.top,
+            uv_bottom: coords.bottom,
+            uv_left: coords.left,
+            uv_right: coords.right,
             ..Default::default()
         })?;
 

@@ -11,9 +11,17 @@ use ::{
 
 use crate::asset_loader::MipmapData;
 
+pub struct GlyphTexCoords {
+    pub top: f32,
+    pub bottom: f32,
+    pub left: f32,
+    pub right: f32,
+}
+
 pub struct Text {
     pub font: FontArc,
     pub rasterized: MipmapData,
+    pub tex_coords: std::collections::HashMap<char, GlyphTexCoords>,
 }
 
 pub struct AtlasGlyph {
@@ -29,7 +37,7 @@ impl Text {
             File::open(path)?.read_to_end(&mut buffer)?;
             buffer
         };
-        let scale = 48.0;
+        let scale = 128.0;
         let raw_font = FontArc::try_from_vec(bytes)?;
         let font = raw_font.as_scaled(scale);
         let v_advance = (font.line_gap() + font.height()) as u32;
@@ -47,7 +55,7 @@ impl Text {
             if outline_opt.is_none() {
                 continue;
             }
-            let outline = outline_opt.unwrap();
+            let mut outline = outline_opt.unwrap();
             let bounds = outline.px_bounds();
             if (bounds.width().ceil() as u32 + h_offset + h_padding)
                 >= max_width
@@ -56,7 +64,6 @@ impl Text {
                 v_offset += v_advance;
                 max_height = v_offset.max(max_height);
             }
-            println!("{} at {}:{}", char, h_offset, v_offset);
 
             let glyph = AtlasGlyph {
                 outline,
@@ -74,11 +81,24 @@ impl Text {
             [0xFF, 0xFF, 0xFF, 0x00],
         );
 
-        println!("{}x{}", max_width, max_height);
+        let mut tex_coords = std::collections::HashMap::new();
 
-        for (_char, glyph) in glyphs {
+        for (text_char, glyph) in glyphs {
             let base_x = glyph.x;
             let base_y = glyph.y;
+            let width = glyph.outline.px_bounds().width();
+            let height = glyph.outline.px_bounds().height();
+
+            tex_coords.insert(
+                text_char,
+                GlyphTexCoords {
+                    top: (base_y as f32 / max_height as f32),
+                    bottom: (base_y as f32 - height as f32) / max_height as f32,
+                    left: base_x as f32 / max_width as f32,
+                    right: (base_x as f32 + width as f32) / max_width as f32,
+                },
+            );
+
             glyph.outline.draw(|x, y, coverage| {
                 rasterized.write_pixel(
                     base_x + x,
@@ -91,6 +111,7 @@ impl Text {
         Ok(Self {
             font: raw_font,
             rasterized,
+            tex_coords,
         })
     }
 }
