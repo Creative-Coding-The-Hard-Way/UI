@@ -4,13 +4,17 @@ use std::collections::HashMap;
 
 use ab_glyph::OutlinedGlyph;
 use ::{
-    ab_glyph::{Font, FontArc, ScaleFont},
+    ab_glyph::{Font, FontArc, PxScaleFont, ScaleFont},
     anyhow::Result,
     std::{fs::File, io::Read, path::Path},
 };
 
-use crate::asset_loader::MipmapData;
+use crate::{
+    asset_loader::MipmapData,
+    graphics2::{Frame, Vec2, Vec3, Vec4, Vertex},
+};
 
+#[derive(Copy, Clone, Debug)]
 pub struct GlyphTexCoords {
     pub top: f32,
     pub bottom: f32,
@@ -18,8 +22,17 @@ pub struct GlyphTexCoords {
     pub right: f32,
 }
 
+#[derive(Copy, Clone, Debug)]
+struct Quad {
+    tex_coords: GlyphTexCoords,
+    pub left: f32,
+    pub right: f32,
+    pub bottom: f32,
+    pub top: f32,
+}
+
 pub struct Text {
-    pub font: FontArc,
+    pub font: PxScaleFont<FontArc>,
     pub rasterized: MipmapData,
     pub tex_coords: std::collections::HashMap<char, GlyphTexCoords>,
 }
@@ -30,16 +43,59 @@ pub struct AtlasGlyph {
     y: u32,
 }
 
+impl Quad {
+    pub fn draw(&self, tex_index: i32, frame: &mut Frame) -> Result<()> {
+        let white = Vec4::new(1.0, 1.0, 1.0, 1.0);
+        frame.push_vertices(
+            &[
+                Vertex::new(
+                    Vec3::new(self.left, self.top, 0.0),
+                    white,
+                    Vec2::new(self.tex_coords.left, self.tex_coords.top),
+                    tex_index,
+                ),
+                Vertex::new(
+                    Vec3::new(self.right, self.top, 0.0),
+                    white,
+                    Vec2::new(self.tex_coords.right, self.tex_coords.top),
+                    tex_index,
+                ),
+                Vertex::new(
+                    Vec3::new(self.right, self.bottom, 0.0),
+                    white,
+                    Vec2::new(self.tex_coords.right, self.tex_coords.bottom),
+                    tex_index,
+                ),
+                Vertex::new(
+                    Vec3::new(self.left, self.bottom, 0.0),
+                    white,
+                    Vec2::new(self.tex_coords.left, self.tex_coords.bottom),
+                    tex_index,
+                ),
+            ],
+            &[
+                0, 1, 2, // top triangle
+                2, 3, 0, // bottom triangle
+            ],
+        )
+    }
+}
+
 impl Text {
-    pub fn from_font_file(path: impl AsRef<Path>) -> Result<Self> {
+    /// Create a Text object from a font in the given file with the given
+    /// scale in pixels.
+    pub fn from_font_file(path: impl AsRef<Path>, scale: f32) -> Result<Self> {
         let bytes = {
             let mut buffer = vec![];
             File::open(path)?.read_to_end(&mut buffer)?;
             buffer
         };
-        let scale = 128.0;
-        let raw_font = FontArc::try_from_vec(bytes)?;
-        let font = raw_font.as_scaled(scale);
+        let font = FontArc::try_from_vec(bytes)?;
+        Self::from_font(font.into_scaled(scale))
+    }
+
+    /// Create a Text object from the given pixel-scaled font.
+    pub fn from_font(font: PxScaleFont<FontArc>) -> Result<Self> {
         let v_advance = (font.line_gap() + font.height()) as u32;
         let max_width = 2024;
         let h_padding = 10;
@@ -75,13 +131,12 @@ impl Text {
             h_offset += h_padding + bounds.width().ceil() as u32;
         }
 
+        let mut tex_coords = std::collections::HashMap::new();
         let mut rasterized = MipmapData::allocate(
             max_width,
             max_height,
             [0xFF, 0xFF, 0xFF, 0x00],
         );
-
-        let mut tex_coords = std::collections::HashMap::new();
 
         for (text_char, glyph) in glyphs {
             let base_x = glyph.x;
@@ -109,10 +164,52 @@ impl Text {
         }
 
         Ok(Self {
-            font: raw_font,
+            font,
             rasterized,
             tex_coords,
         })
+    }
+
+    pub fn draw_text<T>(
+        &self,
+        frame: &mut Frame,
+        pos: Vec2,
+        contents: &T,
+    ) -> Result<()>
+    where
+        T: AsRef<str>,
+    {
+        let v_advance = (self.font.line_gap() + self.font.height());
+
+        let mut h_offset: f32 = pos.x;
+        let mut v_offset: f32 = pos.y;
+
+        let mut previous_glyph: Option<ab_glyph::Glyph> = None;
+        for char in contents.as_ref().chars() {
+            let glyph = self.font.scaled_glyph(char);
+            let outline_opt = self.font.outline_glyph(glyph.clone());
+
+            if let Some(outline) = outline_opt {
+                if let Some(tex_coords) = self.tex_coords.get(&char) {
+                    let bounds = outline.px_bounds();
+                    let quad = Quad {
+                        tex_coords: *tex_coords,
+                        top: v_offset - bounds.min.y,
+                        bottom: v_offset - bounds.max.y,
+                        left: bounds.min.x + h_offset,
+                        right: bounds.max.x + h_offset,
+                    };
+                    quad.draw(1, frame)?;
+                }
+            }
+
+            h_offset += self.font.h_advance(glyph.id);
+            if let Some(pg) = previous_glyph.take() {
+                h_offset += self.font.kern(pg.id, glyph.id);
+            }
+            previous_glyph = Some(glyph.clone());
+        }
+        Ok(())
     }
 }
 

@@ -40,8 +40,7 @@ impl State for Example {
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
         let mut asset_loader =
             AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
-        let text =
-            Text::from_font_file("assets/MontserratAlternates-Regular.ttf")?;
+        let text = Text::from_font_file("assets/Roboto-Regular.ttf", 64.0)?;
         let graphics2 = Graphics2::new(
             &msaa_renderpass,
             &[
@@ -121,24 +120,16 @@ impl State for Example {
             end: Vec2::new(0.0, -10000.0),
             ..Default::default()
         })?;
-        //frame.draw_quad(QuadArgs {
-        //    center: Vec2::new(-256.0, 150.0),
-        //    dimensions: Vec2::new(2048.0, 768.0),
-        //    texture_index: 1,
-        //    ..Default::default()
-        //})?;
-        //
-        let coords = self.text.tex_coords.get(&'m').unwrap();
-        frame.draw_quad(QuadArgs {
-            center: Vec2::new(100.0, 100.0),
-            dimensions: Vec2::new(100.0, 100.0),
-            texture_index: 1,
-            uv_top: coords.top,
-            uv_bottom: coords.bottom,
-            uv_left: coords.left,
-            uv_right: coords.right,
+        frame.draw_line(LineArgs {
+            start: Vec2::new(0.0, -100.0),
+            end: Vec2::new(2000.0, -100.0),
             ..Default::default()
         })?;
+        self.text.draw_text(
+            &mut frame,
+            Vec2::new(100.0, -100.0),
+            &"aoeu\naoeu",
+        )?;
 
         unsafe {
             self.graphics2.complete_frame(cmds, frame, index)?;
