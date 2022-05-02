@@ -34,7 +34,8 @@ struct Quad {
 pub struct Text {
     pub font: PxScaleFont<FontArc>,
     pub rasterized: MipmapData,
-    pub tex_coords: std::collections::HashMap<char, GlyphTexCoords>,
+    pub tex_coords:
+        std::collections::HashMap<ab_glyph::GlyphId, GlyphTexCoords>,
 }
 
 pub struct AtlasGlyph {
@@ -107,11 +108,12 @@ impl Text {
         let mut glyphs = HashMap::new();
         for (_id, char) in font.codepoint_ids() {
             let glyph = font.scaled_glyph(char);
+            let id = glyph.id;
             let outline_opt = font.outline_glyph(glyph);
             if outline_opt.is_none() {
                 continue;
             }
-            let mut outline = outline_opt.unwrap();
+            let outline = outline_opt.unwrap();
             let bounds = outline.px_bounds();
             if (bounds.width().ceil() as u32 + h_offset + h_padding)
                 >= max_width
@@ -121,12 +123,12 @@ impl Text {
                 max_height = v_offset.max(max_height);
             }
 
-            let glyph = AtlasGlyph {
+            let atlas_glyph = AtlasGlyph {
                 outline,
                 x: h_offset,
                 y: v_offset,
             };
-            glyphs.insert(char, glyph);
+            glyphs.insert(id, atlas_glyph);
 
             h_offset += h_padding + bounds.width().ceil() as u32;
         }
@@ -138,14 +140,14 @@ impl Text {
             [0xFF, 0xFF, 0xFF, 0x00],
         );
 
-        for (text_char, glyph) in glyphs {
+        for (glyph_id, glyph) in glyphs {
             let base_x = glyph.x;
             let base_y = glyph.y;
             let width = glyph.outline.px_bounds().width();
             let height = glyph.outline.px_bounds().height();
 
             tex_coords.insert(
-                text_char,
+                glyph_id,
                 GlyphTexCoords {
                     top: (base_y as f32 / max_height as f32),
                     bottom: (base_y as f32 - height as f32) / max_height as f32,
@@ -170,6 +172,43 @@ impl Text {
         })
     }
 
+    pub fn layout_text<T>(
+        &self,
+        pos: Vec2,
+        content: &T,
+    ) -> Result<Vec<ab_glyph::Glyph>>
+    where
+        T: AsRef<str>,
+    {
+        let mut glyphs = vec![];
+        let v_advance = self.font.line_gap() + self.font.height();
+        let mut cursor = ab_glyph::point(pos.x, pos.y);
+
+        let mut previous_glyph: Option<ab_glyph::Glyph> = None;
+        for char in content.as_ref().chars() {
+            let mut glyph = self.font.scaled_glyph(char);
+            glyph.position = cursor;
+            cursor.x += self.font.h_advance(glyph.id);
+            if char.is_control() {
+                if char == '\n' {
+                    cursor.x = pos.x;
+                    cursor.y -= v_advance;
+                }
+                previous_glyph = None;
+                continue;
+            }
+
+            if let Some(previous) = previous_glyph.take() {
+                glyph.position.x += self.font.kern(previous.id, glyph.id);
+            }
+            previous_glyph = Some(glyph.clone());
+
+            glyphs.push(glyph);
+        }
+
+        Ok(glyphs)
+    }
+
     pub fn draw_text<T>(
         &self,
         frame: &mut Frame,
@@ -179,41 +218,25 @@ impl Text {
     where
         T: AsRef<str>,
     {
-        let v_advance = (self.font.line_gap() + self.font.height());
+        let glyphs = self.layout_text(pos, contents)?;
 
-        let mut h_offset: f32 = pos.x;
-        let mut v_offset: f32 = pos.y;
-
-        let mut previous_glyph: Option<ab_glyph::Glyph> = None;
-        for char in contents.as_ref().chars() {
-            let glyph = self.font.scaled_glyph(char);
-            let outline_opt = self.font.outline_glyph(glyph.clone());
-
-            if let Some(outline) = outline_opt {
-                if let Some(tex_coords) = self.tex_coords.get(&char) {
+        for glyph in glyphs {
+            let id = glyph.id;
+            if let Some(outline) = self.font.outline_glyph(glyph) {
+                if let Some(tex_coords) = self.tex_coords.get(&id) {
                     let bounds = outline.px_bounds();
                     let quad = Quad {
                         tex_coords: *tex_coords,
-                        top: v_offset - bounds.min.y,
-                        bottom: v_offset - bounds.max.y,
-                        left: bounds.min.x + h_offset,
-                        right: bounds.max.x + h_offset,
+                        top: bounds.max.y + bounds.height(),
+                        bottom: bounds.max.y,
+                        left: bounds.min.x,
+                        right: bounds.max.x,
                     };
                     quad.draw(1, frame)?;
                 }
             }
-
-            h_offset += self.font.h_advance(glyph.id);
-            if let Some(pg) = previous_glyph.take() {
-                h_offset += self.font.kern(pg.id, glyph.id);
-            }
-            previous_glyph = Some(glyph.clone());
         }
+
         Ok(())
     }
-}
-
-fn bounds(outline: &OutlinedGlyph) -> (u32, u32) {
-    let bounds = outline.px_bounds();
-    (bounds.width() as u32, bounds.height() as u32)
 }

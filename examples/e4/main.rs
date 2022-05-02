@@ -127,8 +127,8 @@ impl State for Example {
         })?;
         self.text.draw_text(
             &mut frame,
-            Vec2::new(100.0, -100.0),
-            &"aoeu\naoeu",
+            Vec2::new(20.0, -100.0),
+            &"Hello\nWorld +- what",
         )?;
 
         unsafe {
