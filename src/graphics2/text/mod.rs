@@ -172,17 +172,13 @@ impl Text {
         })
     }
 
-    pub fn layout_text<T>(
-        &self,
-        pos: Vec2,
-        content: &T,
-    ) -> Result<Vec<ab_glyph::Glyph>>
+    pub fn layout_text<T>(&self, content: &T) -> Result<Vec<ab_glyph::Glyph>>
     where
         T: AsRef<str>,
     {
         let mut glyphs = vec![];
-        let v_advance = self.font.line_gap() + self.font.height();
-        let mut cursor = ab_glyph::point(pos.x, pos.y);
+        let v_advance = (self.font.line_gap() + self.font.height()).ceil();
+        let mut cursor = ab_glyph::point(0.0, 0.0);
 
         let mut previous_glyph: Option<ab_glyph::Glyph> = None;
         for char in content.as_ref().chars() {
@@ -191,15 +187,24 @@ impl Text {
             cursor.x += self.font.h_advance(glyph.id);
             if char.is_control() {
                 if char == '\n' {
-                    cursor.x = pos.x;
-                    cursor.y -= v_advance;
+                    cursor.x = 0.0;
+                    cursor.y += v_advance;
                 }
                 previous_glyph = None;
                 continue;
             }
 
             if let Some(previous) = previous_glyph.take() {
-                glyph.position.x += self.font.kern(previous.id, glyph.id);
+                let kern = self.font.kern(previous.id, glyph.id);
+                if kern > 0.0 {
+                    log::info!(
+                        "Kern for '{:?}{:?}' is {}",
+                        previous.id,
+                        glyph.id,
+                        kern
+                    );
+                }
+                glyph.position.x += kern;
             }
             previous_glyph = Some(glyph.clone());
 
@@ -218,8 +223,7 @@ impl Text {
     where
         T: AsRef<str>,
     {
-        let glyphs = self.layout_text(pos, contents)?;
-
+        let glyphs = self.layout_text(contents)?;
         for glyph in glyphs {
             let id = glyph.id;
             if let Some(outline) = self.font.outline_glyph(glyph) {
@@ -227,10 +231,10 @@ impl Text {
                     let bounds = outline.px_bounds();
                     let quad = Quad {
                         tex_coords: *tex_coords,
-                        top: bounds.max.y + bounds.height(),
-                        bottom: bounds.max.y,
-                        left: bounds.min.x,
-                        right: bounds.max.x,
+                        top: pos.y - bounds.min.y,
+                        bottom: pos.y - bounds.max.y,
+                        left: pos.x + bounds.min.x,
+                        right: pos.x + bounds.max.x,
                     };
                     quad.draw(1, frame)?;
                 }

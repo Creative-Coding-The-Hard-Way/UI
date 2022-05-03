@@ -8,6 +8,8 @@ mod pipeline;
 mod text;
 mod vertex;
 
+pub mod primitives;
+
 use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
 pub type Vec2 = nalgebra::Vector2<f32>;

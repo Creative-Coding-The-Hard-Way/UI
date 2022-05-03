@@ -184,7 +184,7 @@ impl AssetLoader {
         T: AsRef<Path>,
     {
         let loaded = Reader::open(path_to_texture_image)?.decode()?;
-        let rgba = loaded.flipv().into_rgba8();
+        let rgba = loaded.into_rgba8();
         let (width, height) = (rgba.width(), rgba.height());
 
         let mipmap_count = Self::compute_mipmap_count(width, height);
