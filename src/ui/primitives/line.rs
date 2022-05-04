@@ -1,6 +1,6 @@
 use crate::{
-    graphics2::{Drawable, Frame},
-    Vec2, Vec3, Vec4,
+    immediate_mode_graphics::{Drawable, Frame},
+    vec2, vec3, vec4, Vec2, Vec4,
 };
 use anyhow::Result;
 
@@ -30,10 +30,10 @@ pub struct Line {
 impl Default for Line {
     fn default() -> Self {
         Self {
-            start: Vec2::new(0.0, 0.0),
-            end: Vec2::new(1.0, 0.0),
+            start: vec2(0.0, 0.0),
+            end: vec2(1.0, 0.0),
             depth: 0.0,
-            color: Vec4::new(1.0, 1.0, 1.0, 1.0),
+            color: vec4(1.0, 1.0, 1.0, 1.0),
             width: 1.0,
             texture_index: 0,
         }
@@ -49,12 +49,12 @@ impl Drawable for Line {
     /// Render the line by building a quad centered on the start and end points
     /// using the line's given width.
     fn outline(&self, frame: &mut Frame) -> Result<()> {
-        use crate::graphics2::Vertex;
+        use crate::immediate_mode_graphics::Vertex;
 
         let direction = self.end - self.start;
 
         // rotate the line's direction 90 degrees to the left, then normalize
-        let normal = Vec2::new(-direction.y, direction.x).normalize();
+        let normal = vec2(-direction.y, direction.x).normalize();
         let half_width = 0.5 * self.width * normal;
 
         let top_left = self.start + half_width;
@@ -68,27 +68,27 @@ impl Drawable for Line {
         frame.push_vertices(
             &[
                 Vertex::new(
-                    Vec3::new(top_left.x, top_left.y, self.depth),
+                    vec3(top_left.x, top_left.y, self.depth),
                     self.color,
-                    Vec2::new(uv_left, uv_top),
+                    vec2(uv_left, uv_top),
                     self.texture_index,
                 ),
                 Vertex::new(
-                    Vec3::new(top_right.x, top_right.y, self.depth),
+                    vec3(top_right.x, top_right.y, self.depth),
                     self.color,
-                    Vec2::new(uv_right, uv_top),
+                    vec2(uv_right, uv_top),
                     self.texture_index,
                 ),
                 Vertex::new(
-                    Vec3::new(bottom_right.x, bottom_right.y, self.depth),
+                    vec3(bottom_right.x, bottom_right.y, self.depth),
                     self.color,
-                    Vec2::new(uv_right, uv_bottom),
+                    vec2(uv_right, uv_bottom),
                     self.texture_index,
                 ),
                 Vertex::new(
-                    Vec3::new(bottom_left.x, bottom_left.y, self.depth),
+                    vec3(bottom_left.x, bottom_left.y, self.depth),
                     self.color,
-                    Vec2::new(uv_left, uv_bottom),
+                    vec2(uv_left, uv_bottom),
                     self.texture_index,
                 ),
             ],

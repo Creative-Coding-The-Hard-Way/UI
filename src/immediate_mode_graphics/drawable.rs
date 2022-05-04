@@ -1,4 +1,5 @@
-use crate::graphics2::Frame;
+use crate::immediate_mode_graphics::Frame;
+
 use anyhow::Result;
 
 /// Things which implement this trait can render themselves to a given frame.

@@ -1,4 +1,4 @@
-use crate::Vec2;
+use crate::{vec2, Vec2};
 
 /// Define a rectangular region on the screen.
 #[derive(Debug, Copy, Clone)]
@@ -11,8 +11,8 @@ impl Rect {
     /// Create a new rectange with the given coordinates.
     pub fn new(top: f32, left: f32, bottom: f32, right: f32) -> Self {
         Self {
-            top_left: Vec2::new(left, top),
-            bottom_right: Vec2::new(right, bottom),
+            top_left: vec2(left, top),
+            bottom_right: vec2(right, bottom),
         }
     }
 
@@ -96,7 +96,7 @@ mod test {
     #[test]
     fn test_translate() {
         let mut rect = Rect::new(10.0, -9.0, -10.0, 9.0);
-        rect.translate(Vec2::new(9.0, 10.0));
+        rect.translate(vec2(9.0, 10.0));
 
         assert_eq!(rect.left(), 0.0);
         assert_eq!(rect.right(), 18.0);

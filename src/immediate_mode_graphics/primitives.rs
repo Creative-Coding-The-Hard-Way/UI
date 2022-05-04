@@ -1,4 +1,7 @@
-use crate::graphics2::{Frame, Vec2, Vec3, Vec4, Vertex};
+use crate::{
+    immediate_mode_graphics::{Frame, Vertex},
+    Vec2, Vec3, Vec4,
+};
 
 use anyhow::Result;
 

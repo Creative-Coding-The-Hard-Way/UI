@@ -1,9 +1,9 @@
 use anyhow::Result;
 
 use crate::{
-    graphics2::{Drawable, Frame, Vertex},
+    immediate_mode_graphics::{Drawable, Frame, Vertex},
     ui::primitives::{Line, Rect},
-    Vec2, Vec3, Vec4,
+    vec2, vec3, vec4, Vec4,
 };
 
 /// A Tile is a rectangular area which can be rendered with a texture and
@@ -44,7 +44,7 @@ impl Default for Tile {
             model: Rect::new(1.0, -1.0, -1.0, 1.0),
             uv: Rect::new(0.0, 0.0, 1.0, 1.0),
             depth: 0.0,
-            color: Vec4::new(1.0, 1.0, 1.0, 1.0),
+            color: vec4(1.0, 1.0, 1.0, 1.0),
             outline_width: 1.0,
             outline_texture_index: 0,
             texture_index: 0,
@@ -57,35 +57,27 @@ impl Drawable for Tile {
         frame.push_vertices(
             &[
                 Vertex::new(
-                    Vec3::new(self.model.left(), self.model.top(), self.depth),
+                    vec3(self.model.left(), self.model.top(), self.depth),
                     self.color,
-                    Vec2::new(self.uv.left(), self.uv.top()),
+                    vec2(self.uv.left(), self.uv.top()),
                     self.texture_index,
                 ),
                 Vertex::new(
-                    Vec3::new(self.model.right(), self.model.top(), self.depth),
+                    vec3(self.model.right(), self.model.top(), self.depth),
                     self.color,
-                    Vec2::new(self.uv.right(), self.uv.top()),
+                    vec2(self.uv.right(), self.uv.top()),
                     self.texture_index,
                 ),
                 Vertex::new(
-                    Vec3::new(
-                        self.model.right(),
-                        self.model.bottom(),
-                        self.depth,
-                    ),
+                    vec3(self.model.right(), self.model.bottom(), self.depth),
                     self.color,
-                    Vec2::new(self.uv.right(), self.uv.bottom()),
+                    vec2(self.uv.right(), self.uv.bottom()),
                     self.texture_index,
                 ),
                 Vertex::new(
-                    Vec3::new(
-                        self.model.left(),
-                        self.model.bottom(),
-                        self.depth,
-                    ),
+                    vec3(self.model.left(), self.model.bottom(), self.depth),
                     self.color,
-                    Vec2::new(self.uv.left(), self.uv.bottom()),
+                    vec2(self.uv.left(), self.uv.bottom()),
                     self.texture_index,
                 ),
             ],
@@ -98,8 +90,8 @@ impl Drawable for Tile {
 
     fn outline(&self, frame: &mut Frame) -> Result<()> {
         let top_left = self.model.top_left;
-        let top_right = Vec2::new(self.model.right(), self.model.top());
-        let bottom_left = Vec2::new(self.model.left(), self.model.bottom());
+        let top_right = vec2(self.model.right(), self.model.top());
+        let bottom_left = vec2(self.model.left(), self.model.bottom());
         let bottom_right = self.model.bottom_right;
         let outline_properties = Line {
             depth: self.depth,

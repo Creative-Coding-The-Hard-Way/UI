@@ -11,7 +11,8 @@ use ::{
 
 use crate::{
     asset_loader::MipmapData,
-    graphics2::{Frame, Vec2, Vec3, Vec4, Vertex},
+    immediate_mode_graphics::{Frame, Vertex},
+    Vec2, Vec3, Vec4,
 };
 
 #[derive(Copy, Clone, Debug)]

@@ -1,6 +1,6 @@
-use crate::graphics2::{Vec2, Vec3, Vec4};
+use crate::{Vec2, Vec3, Vec4};
 
-/// The per-vertex data used by Graphics2.
+/// The supported Per-Vertex graphics data.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Vertex {
@@ -13,9 +13,10 @@ pub struct Vertex {
     // The texture coordinate associated with the vertex.
     pub uv: [f32; 2],
 
-    // The texture *index*. Match this with the texture indices given to
-    // graphics2 at creation.
-    pub tex_index: i32,
+    // The texture index controls which texture will be applied to the vertex
+    // when resterizing.
+    // Defaults to 0.
+    pub texture_index: i32,
 
     // Padding required for proper alignment inside the buffer.
     // See the OpenGL spec for notes regarding structure padding when elements
@@ -39,14 +40,26 @@ pub struct Vertex {
     pub _pad: i32,
 }
 
+impl Default for Vertex {
+    fn default() -> Self {
+        Self {
+            pos: [0.0, 0.0, 0.0, 1.0],
+            rgba: [1.0, 1.0, 1.0, 1.0],
+            uv: [0.0, 0.0],
+            texture_index: 0,
+            _pad: 0,
+        }
+    }
+}
+
 impl Vertex {
-    /// Create a new 2D Vertex on the near clipping plane.
-    pub fn new(pos: Vec3, rgba: Vec4, uv: Vec2, tex_index: i32) -> Vertex {
+    /// Create a new Vertex using nalgebra vectors.
+    pub fn new(pos: Vec3, rgba: Vec4, uv: Vec2, texture_index: i32) -> Vertex {
         Self {
             pos: [pos.x, pos.y, pos.z, 1.0],
             rgba: rgba.into(),
             uv: uv.into(),
-            tex_index,
+            texture_index,
             _pad: 0,
         }
     }

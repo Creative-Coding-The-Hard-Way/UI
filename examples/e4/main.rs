@@ -1,13 +1,16 @@
+use ccthw::{immediate_mode_graphics::Drawable, ui::primitives::Line};
+
 use ::{
     anyhow::{Context, Result},
     ccthw::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        graphics2::{Graphics2, Text},
+        immediate_mode_graphics::{ImmediateModeGraphics, Text},
         math::projections,
         multisample_renderpass::MultisampleRenderpass,
         timing::FrameRateLimit,
+        vec2,
         vulkan::{Framebuffer, MemoryAllocator, RenderDevice},
         Vec2,
     },
@@ -17,7 +20,7 @@ use ::{
 struct Example {
     msaa_renderpass: MultisampleRenderpass,
     framebuffers: Vec<Framebuffer>,
-    graphics2: Graphics2,
+    immediate_mode_graphics: ImmediateModeGraphics,
     camera: nalgebra::Matrix4<f32>,
     _asset_loader: AssetLoader,
     text: Text,
@@ -41,7 +44,7 @@ impl State for Example {
         let mut asset_loader =
             AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
         let text = Text::from_font_file("assets/Roboto-Regular.ttf", 64.0)?;
-        let graphics2 = Graphics2::new(
+        let immediate_mode_graphics = ImmediateModeGraphics::new(
             &msaa_renderpass,
             &[
                 asset_loader.blank_white()?,
@@ -54,7 +57,7 @@ impl State for Example {
         Ok(Self {
             msaa_renderpass,
             framebuffers,
-            graphics2,
+            immediate_mode_graphics,
             camera: nalgebra::Matrix4::identity(),
             text,
             _asset_loader: asset_loader,
@@ -74,7 +77,7 @@ impl State for Example {
         )?;
         self.framebuffers =
             self.msaa_renderpass.create_swapchain_framebuffers()?;
-        self.graphics2
+        self.immediate_mode_graphics
             .rebuild_swapchain_resources(&self.msaa_renderpass)?;
         let (half_width, half_height) = (
             framebuffer_size.0 as f32 / 2.0,
@@ -106,33 +109,41 @@ impl State for Example {
         }
 
         let mut frame = self
-            .graphics2
+            .immediate_mode_graphics
             .acquire_frame(index)
             .with_context(|| "unable to acquire graphics2 frame")?;
         frame.set_view_projection(self.camera)?;
-        //frame.draw_line(LineArgs {
-        //    start: Vec2::new(-10000.0, 0.0),
-        //    end: Vec2::new(10000.0, 0.0),
-        //    ..Default::default()
-        //})?;
-        //frame.draw_line(LineArgs {
-        //    start: Vec2::new(0.0, 10000.0),
-        //    end: Vec2::new(0.0, -10000.0),
-        //    ..Default::default()
-        //})?;
-        //frame.draw_line(LineArgs {
-        //    start: Vec2::new(0.0, -100.0),
-        //    end: Vec2::new(2000.0, -100.0),
-        //    ..Default::default()
-        //})?;
+
+        Line {
+            start: vec2(-10000.0, 0.0),
+            end: vec2(10000.0, 0.0),
+            ..Default::default()
+        }
+        .fill(&mut frame)?;
+
+        Line {
+            start: vec2(0.0, -10000.0),
+            end: vec2(0.0, 10000.0),
+            ..Default::default()
+        }
+        .fill(&mut frame)?;
+
+        Line {
+            start: vec2(0.0, -100.0),
+            end: vec2(2000.0, -100.0),
+            ..Default::default()
+        }
+        .fill(&mut frame)?;
+
         self.text.draw_text(
             &mut frame,
             Vec2::new(20.0, -100.0),
-            &"[]{}\n{hello world}(thing)",
+            &"Hello World\nThis is some Text.",
         )?;
 
         unsafe {
-            self.graphics2.complete_frame(cmds, frame, index)?;
+            self.immediate_mode_graphics
+                .complete_frame(cmds, frame, index)?;
             self.msaa_renderpass.end_renderpass(cmds);
         }
         Ok(())

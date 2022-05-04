@@ -1,17 +1,13 @@
-# First Texture
+# Application Structure
 
-This example uses the AssetLoader to read an image from disk and use it as a
-texture.
-
-NOTE: the implementation uses the DescriptorIndexing feature from Vulkan 1.2
-to enable variable-length descriptor set bindings and non-uniform sampler
-indexing. This lets the implementation bind all of the textures once, then
-decide which texture to use per-triangle.
+This example uses the application structure defined in the demo module. This
+removes a bunch of the GLFW boilerplate and lets the app jump straight into
+rendering graphics.
 
 ## Usage
 
 ```
-cargo run --example e2
+cargo run --example e3
 ```
 
 ## Keybinds

@@ -1,9 +1,10 @@
-//! Graphics 2 is a high-level module for efficently rendering immediate-mode
-//! graphics which change every frame.
+//! This module defines structs and functions for efficiently rendering
+//! Vertices which are generated new on the CPU every frame.
+//!
 
 mod drawable;
+mod error;
 mod frame;
-mod graphics2_error;
 mod pipeline;
 mod text;
 mod vertex;
@@ -12,12 +13,8 @@ pub mod primitives;
 
 use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
-pub type Vec2 = nalgebra::Vector2<f32>;
-pub type Vec3 = nalgebra::Vector3<f32>;
-pub type Vec4 = nalgebra::Vector4<f32>;
-
 pub use self::{
-    drawable::Drawable, frame::Frame, graphics2_error::Graphics2Error,
+    drawable::Drawable, error::ImmediateModeGraphicsError, frame::Frame,
     text::Text, vertex::Vertex,
 };
 use crate::{
@@ -29,15 +26,32 @@ use crate::{
     },
 };
 
-pub struct Graphics2 {
-    pub textures: Vec<CombinedImageSampler>,
-    pub pipeline: Pipeline,
-    pub frames: Vec<Option<Frame>>,
-    pub vk_alloc: Arc<dyn MemoryAllocator>,
-    pub vk_dev: Arc<RenderDevice>,
+/// This struct holds all of the resources required to render textured vertices
+/// which the CPU changes every frame.
+///
+pub struct ImmediateModeGraphics {
+    /// The set of all indexable textures.
+    /// Vertex texture_id's are treated as indexes into this vector.
+    textures: Vec<CombinedImageSampler>,
+
+    /// The graphics pipeline used to render vertices.
+    pipeline: Pipeline,
+
+    /// All per-frame resources used to render vertices.
+    frames: Vec<Option<Frame>>,
+
+    /// The device allocator.
+    vk_alloc: Arc<dyn MemoryAllocator>,
+
+    /// The vulkan render device.
+    vk_dev: Arc<RenderDevice>,
 }
 
-impl Graphics2 {
+impl ImmediateModeGraphics {
+    /// Create a new Immediate Mode Graphics object which targets the provided
+    /// renderpass.
+    ///
+    /// Vertices can reference any texture in the textures array by their index.
     pub fn new(
         msaa_renderpass: &MultisampleRenderpass,
         textures: &[CombinedImageSampler],
@@ -102,9 +116,11 @@ impl Graphics2 {
     pub fn acquire_frame(
         &mut self,
         swapchain_image_index: usize,
-    ) -> Result<Frame, Graphics2Error> {
+    ) -> Result<Frame, ImmediateModeGraphicsError> {
         let mut frame = self.frames[swapchain_image_index].take().ok_or(
-            Graphics2Error::FrameResourcesUnavailable(swapchain_image_index),
+            ImmediateModeGraphicsError::FrameResourcesUnavailable(
+                swapchain_image_index,
+            ),
         )?;
         frame.clear();
         Ok(frame)

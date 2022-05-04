@@ -2,7 +2,7 @@ use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
 use crate::{
     asset_loader::CombinedImageSampler,
-    graphics2::Vertex,
+    immediate_mode_graphics::Vertex,
     vulkan::{
         errors::VulkanError, Buffer, CommandBuffer, DescriptorPool,
         DescriptorSet, DescriptorSetLayout, GpuVec, MemoryAllocator,
@@ -10,20 +10,38 @@ use crate::{
     },
 };
 
+/// All data sent to the shaders in a Uniform Buffer.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct UniformBufferData {
+    /// The view-projection matrix created with: projection * view.
     pub view_projection: [[f32; 4]; 4],
 }
 
-/// Per-Frame resources for Graphics2.
+/// All resources required to render a single frame's vertices.
 pub struct Frame {
+    /// The descriptor pool owns gpu resources used by the descriptor set.
     _descriptor_pool: DescriptorPool,
+
+    /// The descriptor set enables texture indexing.
     descriptor_set: DescriptorSet,
+
+    /// This frame's uniform data.
     uniform_data: Buffer,
+
+    /// All of the vertices to be rendered on the current frame.
+    /// This is cleared each time the frame is acquired.
     vertex_data: GpuVec<Vertex>,
+
+    /// Flag is set to 'true' if the vertex buffer needs to be rebound to the
+    /// descriptor set. This occurs when the GpuVec grows and needs to be
+    /// re-allocated.
     vertex_data_needs_rebound: bool,
+
+    /// The set of all vertex indices.
     index_data: GpuVec<u32>,
+
+    /// The Vulkan render device.
     vk_dev: Arc<RenderDevice>,
 }
 

@@ -5,7 +5,7 @@ use ::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        graphics2::{Drawable, Graphics2},
+        immediate_mode_graphics::{Drawable, ImmediateModeGraphics},
         math::projections,
         multisample_renderpass::MultisampleRenderpass,
         ui::primitives::{Line, Rect, Tile},
@@ -18,7 +18,7 @@ use ::{
 struct Example {
     msaa_renderpass: MultisampleRenderpass,
     framebuffers: Vec<Framebuffer>,
-    graphics2: Graphics2,
+    immediate_mode_graphics: ImmediateModeGraphics,
     camera: nalgebra::Matrix4<f32>,
     _asset_loader: AssetLoader,
     vk_alloc: Arc<dyn MemoryAllocator>,
@@ -40,7 +40,7 @@ impl State for Example {
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
         let mut asset_loader =
             AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
-        let graphics2 = Graphics2::new(
+        let immediate_mode_graphics = ImmediateModeGraphics::new(
             &msaa_renderpass,
             &[
                 asset_loader.blank_white()?,
@@ -52,7 +52,7 @@ impl State for Example {
         Ok(Self {
             msaa_renderpass,
             framebuffers,
-            graphics2,
+            immediate_mode_graphics,
             camera: nalgebra::Matrix4::identity(),
             _asset_loader: asset_loader,
             vk_alloc: vk_alloc.clone(),
@@ -71,7 +71,7 @@ impl State for Example {
         )?;
         self.framebuffers =
             self.msaa_renderpass.create_swapchain_framebuffers()?;
-        self.graphics2
+        self.immediate_mode_graphics
             .rebuild_swapchain_resources(&self.msaa_renderpass)?;
         let (half_width, half_height) = (
             framebuffer_size.0 as f32 / 2.0,
@@ -103,7 +103,7 @@ impl State for Example {
         }
 
         let mut frame = self
-            .graphics2
+            .immediate_mode_graphics
             .acquire_frame(index)
             .with_context(|| "unable to acquire graphics2 frame")?;
         frame.set_view_projection(self.camera)?;
@@ -143,7 +143,8 @@ impl State for Example {
         .fill(&mut frame)?;
 
         unsafe {
-            self.graphics2.complete_frame(cmds, frame, index)?;
+            self.immediate_mode_graphics
+                .complete_frame(cmds, frame, index)?;
             self.msaa_renderpass.end_renderpass(cmds);
         }
         Ok(())
