@@ -36,7 +36,7 @@ pub struct Application {
 impl Application {
     /// Build a new instance of the application.
     pub fn new() -> Result<Self> {
-        let mut glfw_window = GlfwWindow::new("Swapchain")?;
+        let mut glfw_window = GlfwWindow::new("Ortho Transform")?;
         glfw_window.window.set_key_polling(true);
         glfw_window.window.set_framebuffer_size_polling(true);
 

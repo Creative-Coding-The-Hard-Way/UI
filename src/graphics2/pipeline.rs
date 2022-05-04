@@ -91,8 +91,8 @@ pub(super) fn create_pipeline(
     };
     let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo {
         flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
-        depth_test_enable: vk::TRUE,
-        depth_write_enable: vk::TRUE,
+        depth_test_enable: vk::FALSE,
+        depth_write_enable: vk::FALSE,
         min_depth_bounds: 0.0,
         max_depth_bounds: 1.0,
         depth_compare_op: vk::CompareOp::LESS,

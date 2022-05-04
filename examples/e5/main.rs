@@ -9,12 +9,13 @@ use ::{
         glfw_window::GlfwWindow,
         graphics2::{
             primitives::{Quad, Rect},
-            Draw2D, Graphics2, LineArgs, Vec2, Vec4,
+            Graphics2,
         },
         math::projections,
         multisample_renderpass::MultisampleRenderpass,
         timing::FrameRateLimit,
         vulkan::{Framebuffer, MemoryAllocator, RenderDevice},
+        Vec2, Vec4,
     },
     std::sync::Arc,
     std::{fs::File, io::Read},
@@ -148,19 +149,19 @@ impl State for Example {
         frame.set_view_projection(self.camera)?;
 
         // draw grid
-        frame.draw_line(LineArgs {
-            start: Vec2::new(0.0, 0.0),
-            end: Vec2::new(100.0, 0.0),
-            width: 0.2,
-            ..Default::default()
-        })?;
+        //frame.draw_line(LineArgs {
+        //    start: Vec2::new(0.0, 0.0),
+        //    end: Vec2::new(100.0, 0.0),
+        //    width: 0.2,
+        //    ..Default::default()
+        //})?;
 
-        frame.draw_line(LineArgs {
-            start: Vec2::new(0.0, 0.0),
-            end: Vec2::new(0.0, 100.0),
-            width: 0.2,
-            ..Default::default()
-        })?;
+        //frame.draw_line(LineArgs {
+        //    start: Vec2::new(0.0, 0.0),
+        //    end: Vec2::new(0.0, 100.0),
+        //    width: 0.2,
+        //    ..Default::default()
+        //})?;
 
         let outline = self.font.outline_glyph(self.glyph.clone()).unwrap();
         let bounds = outline.px_bounds();
@@ -185,26 +186,26 @@ impl State for Example {
         .draw(&mut frame, Vec4::new(1.0, 1.0, 1.0, 1.0), 2)?;
 
         let gbounds = self.font.glyph_bounds(&self.glyph);
-        frame.draw_line(LineArgs {
-            start: Vec2::new(gbounds.min.x, -gbounds.min.y),
-            end: Vec2::new(gbounds.min.x, -gbounds.max.y),
-            ..Default::default()
-        })?;
-        frame.draw_line(LineArgs {
-            start: Vec2::new(gbounds.max.x, -gbounds.min.y),
-            end: Vec2::new(gbounds.max.x, -gbounds.max.y),
-            ..Default::default()
-        })?;
-        frame.draw_line(LineArgs {
-            start: Vec2::new(gbounds.min.x, -gbounds.min.y),
-            end: Vec2::new(gbounds.max.x, -gbounds.min.y),
-            ..Default::default()
-        })?;
-        frame.draw_line(LineArgs {
-            start: Vec2::new(gbounds.min.x, -gbounds.max.y),
-            end: Vec2::new(gbounds.max.x, -gbounds.max.y),
-            ..Default::default()
-        })?;
+        // frame.draw_line(LineArgs {
+        //     start: Vec2::new(gbounds.min.x, -gbounds.min.y),
+        //     end: Vec2::new(gbounds.min.x, -gbounds.max.y),
+        //     ..Default::default()
+        // })?;
+        // frame.draw_line(LineArgs {
+        //     start: Vec2::new(gbounds.max.x, -gbounds.min.y),
+        //     end: Vec2::new(gbounds.max.x, -gbounds.max.y),
+        //     ..Default::default()
+        // })?;
+        // frame.draw_line(LineArgs {
+        //     start: Vec2::new(gbounds.min.x, -gbounds.min.y),
+        //     end: Vec2::new(gbounds.max.x, -gbounds.min.y),
+        //     ..Default::default()
+        // })?;
+        // frame.draw_line(LineArgs {
+        //     start: Vec2::new(gbounds.min.x, -gbounds.max.y),
+        //     end: Vec2::new(gbounds.max.x, -gbounds.max.y),
+        //     ..Default::default()
+        // })?;
 
         unsafe {
             self.graphics2.complete_frame(cmds, frame, index)?;

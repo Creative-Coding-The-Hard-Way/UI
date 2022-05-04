@@ -5,10 +5,12 @@ use ::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        graphics2::{Draw2D, Graphics2, LineArgs, QuadArgs, Vec2, Vec4},
+        graphics2::{Drawable, Graphics2},
         math::projections,
         multisample_renderpass::MultisampleRenderpass,
+        ui::primitives::{Line, Rect, Tile},
         vulkan::{Framebuffer, MemoryAllocator, RenderDevice},
+        Vec2, Vec4,
     },
     std::sync::Arc,
 };
@@ -105,33 +107,40 @@ impl State for Example {
             .acquire_frame(index)
             .with_context(|| "unable to acquire graphics2 frame")?;
         frame.set_view_projection(self.camera)?;
-        frame.draw_quad(QuadArgs {
-            center: Vec2::new(-200.0, 0.0),
-            dimensions: Vec2::new(150.0, 150.0),
+
+        Tile {
+            model: Rect::centered_at(-200.0, 0.0, 150.0, 150.0),
             texture_index: 1,
             ..Default::default()
-        })?;
-        frame.draw_quad(QuadArgs {
-            center: Vec2::new(200.0, 0.0),
-            dimensions: Vec2::new(150.0, 150.0),
+        }
+        .fill(&mut frame)?;
+
+        let img2 = Tile {
+            model: Rect::centered_at(200.0, 0.0, 200.0, 200.0),
+            outline_width: 5.0,
             texture_index: 1,
-            angle: std::f32::consts::FRAC_PI_3,
             ..Default::default()
-        })?;
-        frame.draw_line(LineArgs {
+        };
+        img2.fill(&mut frame)?;
+        img2.outline(&mut frame)?;
+
+        Line {
             start: Vec2::new(350.0, 150.0),
             end: Vec2::new(-350.0, 150.0),
             width: 2.0,
-            rgba: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            color: Vec4::new(0.5, 0.5, 0.8, 1.0),
             ..Default::default()
-        })?;
-        frame.draw_line(LineArgs {
+        }
+        .fill(&mut frame)?;
+
+        Line {
             start: Vec2::new(350.0, -150.0),
             end: Vec2::new(-350.0, -150.0),
             width: 2.0,
-            rgba: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            color: Vec4::new(0.5, 0.5, 0.8, 1.0),
             ..Default::default()
-        })?;
+        }
+        .fill(&mut frame)?;
 
         unsafe {
             self.graphics2.complete_frame(cmds, frame, index)?;

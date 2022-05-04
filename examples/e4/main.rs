@@ -1,15 +1,15 @@
-use ccthw::graphics2::{QuadArgs, Text};
 use ::{
     anyhow::{Context, Result},
     ccthw::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        graphics2::{Draw2D, Graphics2, LineArgs, Vec2, Vec4},
+        graphics2::{Graphics2, Text},
         math::projections,
         multisample_renderpass::MultisampleRenderpass,
         timing::FrameRateLimit,
         vulkan::{Framebuffer, MemoryAllocator, RenderDevice},
+        Vec2,
     },
     std::sync::Arc,
 };
@@ -110,21 +110,21 @@ impl State for Example {
             .acquire_frame(index)
             .with_context(|| "unable to acquire graphics2 frame")?;
         frame.set_view_projection(self.camera)?;
-        frame.draw_line(LineArgs {
-            start: Vec2::new(-10000.0, 0.0),
-            end: Vec2::new(10000.0, 0.0),
-            ..Default::default()
-        })?;
-        frame.draw_line(LineArgs {
-            start: Vec2::new(0.0, 10000.0),
-            end: Vec2::new(0.0, -10000.0),
-            ..Default::default()
-        })?;
-        frame.draw_line(LineArgs {
-            start: Vec2::new(0.0, -100.0),
-            end: Vec2::new(2000.0, -100.0),
-            ..Default::default()
-        })?;
+        //frame.draw_line(LineArgs {
+        //    start: Vec2::new(-10000.0, 0.0),
+        //    end: Vec2::new(10000.0, 0.0),
+        //    ..Default::default()
+        //})?;
+        //frame.draw_line(LineArgs {
+        //    start: Vec2::new(0.0, 10000.0),
+        //    end: Vec2::new(0.0, -10000.0),
+        //    ..Default::default()
+        //})?;
+        //frame.draw_line(LineArgs {
+        //    start: Vec2::new(0.0, -100.0),
+        //    end: Vec2::new(2000.0, -100.0),
+        //    ..Default::default()
+        //})?;
         self.text.draw_text(
             &mut frame,
             Vec2::new(20.0, -100.0),
