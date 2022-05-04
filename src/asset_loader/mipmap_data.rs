@@ -1,7 +1,7 @@
 /// Instances of this struct represent mipmap data on the CPU.
 /// Data is always assumed to be in R8G8B8A8_SRGB format, e.g. four u8's per
 /// pixel.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MipmapData {
     pub width: u32,
     pub height: u32,

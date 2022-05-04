@@ -1,22 +1,37 @@
-use ::{anyhow::Result, std::sync::Arc};
+use ::{
+    anyhow::{Context, Result},
+    std::sync::Arc,
+};
 
 use crate::{
+    asset_loader::AssetLoader,
     demo::State,
     frame_pipeline::{FrameError, FramePipeline},
     glfw_window::GlfwWindow,
+    immediate_mode_graphics::ImmediateModeGraphics,
+    multisample_renderpass::MultisampleRenderpass,
     timing::FrameRateLimit,
-    vulkan::{self, MemoryAllocator, RenderDevice},
+    vulkan::{self, Framebuffer, MemoryAllocator, RenderDevice},
 };
 
 pub struct Application<S: State> {
+    // Application state and support
+    state: S,
     fps_limit: FrameRateLimit,
     paused: bool,
-    swapchain_needs_rebuild: bool,
+
+    // Vulkan resources
     frame_pipeline: FramePipeline,
+    immediate_mode_graphics: ImmediateModeGraphics,
+    _asset_loader: AssetLoader,
+    msaa_renderpass: MultisampleRenderpass,
+    framebuffers: Vec<Framebuffer>,
+    swapchain_needs_rebuild: bool,
     vk_dev: Arc<RenderDevice>,
-    _vk_alloc: Arc<dyn MemoryAllocator>,
+    vk_alloc: Arc<dyn MemoryAllocator>,
+
+    // The System window.
     glfw_window: GlfwWindow,
-    state: S,
 }
 
 impl<S: State> Application<S> {
@@ -31,19 +46,46 @@ impl<S: State> Application<S> {
         glfw_window.window.set_key_polling(true);
         glfw_window.window.set_framebuffer_size_polling(true);
 
+        let msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
+            vk_dev.clone(),
+            vk_alloc.clone(),
+        )?;
+        let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
+        let mut asset_loader =
+            AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
+
+        let state = S::init(
+            &mut glfw_window,
+            &mut fps_limit,
+            &mut asset_loader,
+            &vk_dev,
+            &vk_alloc,
+        )?;
+
+        let immediate_mode_graphics = ImmediateModeGraphics::new(
+            &msaa_renderpass,
+            asset_loader.textures(),
+            vk_alloc.clone(),
+            vk_dev.clone(),
+        )?;
+
         Ok(Self {
-            state: S::init(
-                &mut glfw_window,
-                &mut fps_limit,
-                &vk_dev,
-                &vk_alloc,
-            )?,
-            paused: false,
-            swapchain_needs_rebuild: true,
+            // application state
+            state,
             fps_limit,
+            paused: false,
+
+            // vulkan resources
             frame_pipeline,
+            msaa_renderpass,
+            framebuffers,
+            immediate_mode_graphics,
+            _asset_loader: asset_loader,
+            swapchain_needs_rebuild: true,
             vk_dev,
-            _vk_alloc: vk_alloc,
+            vk_alloc,
+
+            // system window
             glfw_window,
         })
     }
@@ -78,8 +120,29 @@ impl<S: State> Application<S> {
 
     /// Render the applications state in in a three-step process.
     fn compose_frame(&mut self) -> Result<(), FrameError> {
-        let (index, cmd) = self.frame_pipeline.begin_frame()?;
-        self.state.update(index, cmd)?;
+        let (index, cmds) = self.frame_pipeline.begin_frame()?;
+
+        unsafe {
+            self.msaa_renderpass.begin_renderpass_inline(
+                cmds,
+                &self.framebuffers[index],
+                [0.05, 0.05, 0.05, 1.0],
+                1.0,
+            );
+        }
+
+        let mut frame = self
+            .immediate_mode_graphics
+            .acquire_frame(index)
+            .with_context(|| "unable to acquire graphics2 frame")?;
+
+        self.state.draw_frame(&mut frame)?;
+
+        unsafe {
+            self.immediate_mode_graphics
+                .complete_frame(cmds, frame, index)?;
+            self.msaa_renderpass.end_renderpass(cmds);
+        }
         self.frame_pipeline.end_frame(index)
     }
 
@@ -95,6 +158,16 @@ impl<S: State> Application<S> {
         let (w, h) = self.glfw_window.window.get_framebuffer_size();
         self.vk_dev.rebuild_swapchain((w as u32, h as u32))?;
         self.frame_pipeline.rebuild_swapchain_resources()?;
+
+        // rebuild all dependent vulkan resources
+        self.msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
+            self.vk_dev.clone(),
+            self.vk_alloc.clone(),
+        )?;
+        self.framebuffers =
+            self.msaa_renderpass.create_swapchain_framebuffers()?;
+        self.immediate_mode_graphics
+            .rebuild_swapchain_resources(&self.msaa_renderpass)?;
 
         self.state.rebuild_swapchain_resources(
             &self.glfw_window,

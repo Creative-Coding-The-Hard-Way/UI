@@ -48,8 +48,8 @@ impl Application {
 
         let mut asset_loader =
             AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
-        let texture1 = asset_loader.read_texture("assets/example2_tex1.jpg")?;
-        let texture2 = asset_loader.read_texture("assets/example2_tex2.jpg")?;
+        let tex1 = asset_loader.read_texture("assets/example2_tex1.jpg")?;
+        let tex2 = asset_loader.read_texture("assets/example2_tex2.jpg")?;
 
         // Create per-frame resources and the renderpass
         let frame_pipeline = FramePipeline::new(vk_dev.clone())?;
@@ -62,7 +62,7 @@ impl Application {
         let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
         let mut passthrough = Passthrough::new(
             &msaa_renderpass,
-            &[texture1, texture2],
+            asset_loader.textures(),
             vk_alloc.clone(),
             vk_dev.clone(),
         )?;
@@ -71,37 +71,37 @@ impl Application {
                 pos: [-200.0, -200.0, 0.0],
                 uv: [0.0, 0.0],
                 rgba: [1.0, 1.0, 1.0, 1.0],
-                tex_index: 0,
+                tex_index: tex1,
             },
             Vertex2D {
                 pos: [-200.0, 200.0, 0.0],
                 uv: [0.0, 1.0],
                 rgba: [1.0, 1.0, 1.0, 1.0],
-                tex_index: 0,
+                tex_index: tex1,
             },
             Vertex2D {
                 pos: [200.0, 200.0, 0.0],
                 uv: [1.0, 1.0],
                 rgba: [1.0, 1.0, 1.0, 1.0],
-                tex_index: 0,
+                tex_index: tex1,
             },
             Vertex2D {
                 pos: [-200.0, -200.0, 0.0],
                 uv: [0.0, 0.0],
                 rgba: [1.0, 1.0, 1.0, 1.0],
-                tex_index: 1,
+                tex_index: tex2,
             },
             Vertex2D {
                 pos: [200.0, 200.0, 0.0],
                 uv: [1.0, 1.0],
                 rgba: [1.0, 1.0, 1.0, 1.0],
-                tex_index: 1,
+                tex_index: tex2,
             },
             Vertex2D {
                 pos: [200.0, -200.0, 0.0],
                 uv: [1.0, 0.0],
                 rgba: [1.0, 1.0, 1.0, 1.0],
-                tex_index: 1,
+                tex_index: tex2,
             },
         ])?;
 

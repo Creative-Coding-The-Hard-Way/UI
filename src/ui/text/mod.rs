@@ -1,103 +1,54 @@
-mod text_error;
-
-use std::collections::HashMap;
-
-use ab_glyph::OutlinedGlyph;
 use ::{
-    ab_glyph::{Font, FontArc, PxScaleFont, ScaleFont},
+    ab_glyph::{Font, FontArc, GlyphId, OutlinedGlyph, PxScaleFont, ScaleFont},
     anyhow::Result,
-    std::{fs::File, io::Read, path::Path},
+    std::{collections::HashMap, fs::File, io::Read, path::Path},
 };
 
 use crate::{
-    asset_loader::MipmapData,
-    immediate_mode_graphics::{Frame, Vertex},
-    Vec2, Vec3, Vec4,
+    asset_loader::{AssetLoader, MipmapData},
+    immediate_mode_graphics::{Drawable, Frame},
+    ui::primitives::{Rect, Tile},
+    Vec2,
 };
 
-#[derive(Copy, Clone, Debug)]
-pub struct GlyphTexCoords {
-    pub top: f32,
-    pub bottom: f32,
-    pub left: f32,
-    pub right: f32,
-}
-
-#[derive(Copy, Clone, Debug)]
-struct Quad {
-    tex_coords: GlyphTexCoords,
-    pub left: f32,
-    pub right: f32,
-    pub bottom: f32,
-    pub top: f32,
-}
-
-pub struct Text {
-    pub font: PxScaleFont<FontArc>,
-    pub rasterized: MipmapData,
-    pub tex_coords:
-        std::collections::HashMap<ab_glyph::GlyphId, GlyphTexCoords>,
-}
-
+#[derive(Debug, Clone)]
 pub struct AtlasGlyph {
     outline: OutlinedGlyph,
     x: u32,
     y: u32,
 }
 
-impl Quad {
-    pub fn draw(&self, tex_index: i32, frame: &mut Frame) -> Result<()> {
-        let white = Vec4::new(1.0, 1.0, 1.0, 1.0);
-        frame.push_vertices(
-            &[
-                Vertex::new(
-                    Vec3::new(self.left, self.top, 0.0),
-                    white,
-                    Vec2::new(self.tex_coords.left, self.tex_coords.top),
-                    tex_index,
-                ),
-                Vertex::new(
-                    Vec3::new(self.right, self.top, 0.0),
-                    white,
-                    Vec2::new(self.tex_coords.right, self.tex_coords.top),
-                    tex_index,
-                ),
-                Vertex::new(
-                    Vec3::new(self.right, self.bottom, 0.0),
-                    white,
-                    Vec2::new(self.tex_coords.right, self.tex_coords.bottom),
-                    tex_index,
-                ),
-                Vertex::new(
-                    Vec3::new(self.left, self.bottom, 0.0),
-                    white,
-                    Vec2::new(self.tex_coords.left, self.tex_coords.bottom),
-                    tex_index,
-                ),
-            ],
-            &[
-                0, 1, 2, // top triangle
-                2, 3, 0, // bottom triangle
-            ],
-        )
-    }
+/// All of the resources required to rasterize a font and render text with
+/// textured tiles.
+#[derive(Debug, Clone)]
+pub struct Text {
+    font: PxScaleFont<FontArc>,
+    texture_index: i32,
+    glyph_texture_coords: HashMap<GlyphId, Rect>,
 }
 
 impl Text {
     /// Create a Text object from a font in the given file with the given
     /// scale in pixels.
-    pub fn from_font_file(path: impl AsRef<Path>, scale: f32) -> Result<Self> {
+    pub fn from_font_file(
+        path: impl AsRef<Path>,
+        scale: f32,
+        asset_loader: &mut AssetLoader,
+    ) -> Result<Self> {
         let bytes = {
             let mut buffer = vec![];
             File::open(path)?.read_to_end(&mut buffer)?;
             buffer
         };
         let font = FontArc::try_from_vec(bytes)?;
-        Self::from_font(font.into_scaled(scale))
+        Self::from_font(font.into_scaled(scale), asset_loader)
     }
 
     /// Create a Text object from the given pixel-scaled font.
-    pub fn from_font(font: PxScaleFont<FontArc>) -> Result<Self> {
+    pub fn from_font(
+        font: PxScaleFont<FontArc>,
+        asset_loader: &mut AssetLoader,
+    ) -> Result<Self> {
         let v_advance = (font.line_gap() + font.height()) as u32;
         let max_width = 2024;
         let h_padding = 10;
@@ -134,7 +85,7 @@ impl Text {
             h_offset += h_padding + bounds.width().ceil() as u32;
         }
 
-        let mut tex_coords = std::collections::HashMap::new();
+        let mut glyph_texture_coords = HashMap::new();
         let mut rasterized = MipmapData::allocate(
             max_width,
             max_height,
@@ -147,14 +98,14 @@ impl Text {
             let width = glyph.outline.px_bounds().width();
             let height = glyph.outline.px_bounds().height();
 
-            tex_coords.insert(
+            glyph_texture_coords.insert(
                 glyph_id,
-                GlyphTexCoords {
-                    top: (base_y as f32 / max_height as f32),
-                    bottom: (base_y as f32 - height as f32) / max_height as f32,
-                    left: base_x as f32 / max_width as f32,
-                    right: (base_x as f32 + width as f32) / max_width as f32,
-                },
+                Rect::new(
+                    base_y as f32 / max_height as f32,
+                    base_x as f32 / max_width as f32,
+                    (base_y as f32 - height as f32) / max_height as f32,
+                    (base_x as f32 + width as f32) / max_width as f32,
+                ),
             );
 
             glyph.outline.draw(|x, y, coverage| {
@@ -166,10 +117,13 @@ impl Text {
             });
         }
 
+        let texture_index =
+            asset_loader.create_texture_with_data(&[rasterized])?;
+
         Ok(Self {
             font,
-            rasterized,
-            tex_coords,
+            texture_index,
+            glyph_texture_coords,
         })
     }
 
@@ -228,16 +182,20 @@ impl Text {
         for glyph in glyphs {
             let id = glyph.id;
             if let Some(outline) = self.font.outline_glyph(glyph) {
-                if let Some(tex_coords) = self.tex_coords.get(&id) {
+                if let Some(tex_coords) = self.glyph_texture_coords.get(&id) {
                     let bounds = outline.px_bounds();
-                    let quad = Quad {
-                        tex_coords: *tex_coords,
-                        top: pos.y - bounds.min.y,
-                        bottom: pos.y - bounds.max.y,
-                        left: pos.x + bounds.min.x,
-                        right: pos.x + bounds.max.x,
-                    };
-                    quad.draw(1, frame)?;
+                    Tile {
+                        uv: *tex_coords,
+                        model: Rect::new(
+                            pos.y - bounds.min.y,
+                            pos.x + bounds.min.x,
+                            pos.y - bounds.max.y,
+                            pos.x + bounds.max.x,
+                        ),
+                        texture_index: self.texture_index,
+                        ..Default::default()
+                    }
+                    .fill(frame)?;
                 }
             }
         }

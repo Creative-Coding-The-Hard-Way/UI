@@ -6,16 +6,13 @@ mod drawable;
 mod error;
 mod frame;
 mod pipeline;
-mod text;
 mod vertex;
-
-pub mod primitives;
 
 use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
 pub use self::{
     drawable::Drawable, error::ImmediateModeGraphicsError, frame::Frame,
-    text::Text, vertex::Vertex,
+    vertex::Vertex,
 };
 use crate::{
     asset_loader::CombinedImageSampler,
@@ -61,6 +58,7 @@ impl ImmediateModeGraphics {
         let pipeline = pipeline::create_pipeline(
             msaa_renderpass,
             textures.len() as u32,
+            false,
             vk_dev.clone(),
         )?;
         let frames = {
@@ -93,6 +91,7 @@ impl ImmediateModeGraphics {
         self.pipeline = pipeline::create_pipeline(
             msaa_renderpass,
             self.textures.len() as u32,
+            false,
             self.vk_dev.clone(),
         )?;
         self.frames = {

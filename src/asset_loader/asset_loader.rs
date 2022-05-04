@@ -9,7 +9,7 @@ use ::{
 };
 
 use crate::{
-    asset_loader::{CombinedImageSampler, MipmapData},
+    asset_loader::{AssetLoaderError, CombinedImageSampler, MipmapData},
     vulkan::{
         errors::VulkanError, GpuVec, Image, ImageView, MemoryAllocator,
         OneTimeSubmitCommandPool, RenderDevice, Sampler,
@@ -30,33 +30,41 @@ impl AssetLoader {
     pub fn new(
         vk_dev: Arc<RenderDevice>,
         vk_alloc: Arc<dyn MemoryAllocator>,
-    ) -> Result<Self, VulkanError> {
-        Ok(Self {
+    ) -> Result<Self, AssetLoaderError> {
+        let mut loader = Self {
             textures: vec![],
-            default_sampler: Arc::new(Sampler::linear(vk_dev.clone())?),
+            default_sampler: Arc::new(
+                Sampler::linear(vk_dev.clone())
+                    .map_err(VulkanError::ImageError)?,
+            ),
             staging_buffer: GpuVec::new(
                 vk_dev.clone(),
                 vk_alloc.clone(),
                 vk::BufferUsageFlags::TRANSFER_SRC,
                 (8 * 4) * 512 * 512,
-            )?,
+            )
+            .map_err(VulkanError::BufferError)?,
             command_pool: OneTimeSubmitCommandPool::new(
                 vk_dev.clone(),
                 &vk_dev.graphics_queue,
-            )?,
+            )
+            .map_err(VulkanError::CommandBufferError)?,
             vk_alloc,
             vk_dev,
-        })
-    }
-
-    /// Create an all-white single-pixel texture. This is useful for when a
-    /// pipeline doesn't need a texture but still expects one to be bound.
-    pub fn blank_white(&mut self) -> Result<CombinedImageSampler> {
-        self.create_texture_with_data(&[MipmapData {
+        };
+        // The texture with index 0 is always a 1x1 white pixel. This makes it
+        // so a texture_index of 0 operates as if no texturing is applied.
+        loader.create_texture_with_data(&[MipmapData {
             width: 1,
             height: 1,
             data: vec![0xFF, 0xFF, 0xFF, 0xFF],
-        }])
+        }])?;
+        Ok(loader)
+    }
+
+    /// Get a borrow of the complete texture array.
+    pub fn textures(&self) -> &[CombinedImageSampler] {
+        &self.textures
     }
 
     /// Give data to the texture manager to upload to the gpu and own as a
@@ -64,7 +72,7 @@ impl AssetLoader {
     pub fn create_texture_with_data(
         &mut self,
         mipmaps: &[MipmapData],
-    ) -> Result<CombinedImageSampler> {
+    ) -> Result<i32, AssetLoaderError> {
         let vulkan_image = self.create_empty_2d(
             mipmaps[0].width,
             mipmaps[0].height,
@@ -74,7 +82,9 @@ impl AssetLoader {
         self.staging_buffer.clear();
         for mipmap in mipmaps {
             for byte in &mipmap.data {
-                self.staging_buffer.push_back(*byte)?;
+                self.staging_buffer
+                    .push_back(*byte)
+                    .map_err(VulkanError::BufferError)?;
             }
         }
 
@@ -162,16 +172,23 @@ impl AssetLoader {
                     &[],
                     &[prepare_read_barrier],
                 );
-            })?;
-        let image_view = Arc::new(ImageView::new_2d(
-            Arc::new(vulkan_image),
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageAspectFlags::COLOR,
-        )?);
+            })
+            .map_err(VulkanError::CommandBufferError)?;
+
+        let image_view = Arc::new(
+            ImageView::new_2d(
+                Arc::new(vulkan_image),
+                vk::Format::R8G8B8A8_SRGB,
+                vk::ImageAspectFlags::COLOR,
+            )
+            .map_err(VulkanError::ImageError)?,
+        );
         let texture =
             CombinedImageSampler::new(image_view, self.default_sampler.clone());
         self.textures.push(texture.clone());
-        Ok(texture)
+
+        // return the index of the last texture
+        Ok((self.textures.len() - 1) as i32)
     }
 
     // Load a texture from the image at the given path.
@@ -179,7 +196,7 @@ impl AssetLoader {
     pub fn read_texture<T>(
         &mut self,
         path_to_texture_image: T,
-    ) -> Result<CombinedImageSampler>
+    ) -> Result<i32, AssetLoaderError>
     where
         T: AsRef<Path>,
     {
@@ -214,7 +231,7 @@ impl AssetLoader {
         width: u32,
         height: u32,
         mip_levels: u32,
-    ) -> Result<Image> {
+    ) -> Result<Image, VulkanError> {
         let create_info = vk::ImageCreateInfo {
             flags: vk::ImageCreateFlags::empty(),
             image_type: vk::ImageType::TYPE_2D,

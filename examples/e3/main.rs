@@ -1,62 +1,40 @@
-use ccthw::timing::FrameRateLimit;
 use ::{
-    anyhow::{Context, Result},
+    anyhow::Result,
     ccthw::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        immediate_mode_graphics::{Drawable, ImmediateModeGraphics},
+        immediate_mode_graphics::{Drawable, Frame},
         math::projections,
-        multisample_renderpass::MultisampleRenderpass,
+        timing::FrameRateLimit,
         ui::primitives::{Line, Rect, Tile},
-        vulkan::{Framebuffer, MemoryAllocator, RenderDevice},
+        vulkan::{MemoryAllocator, RenderDevice},
         Vec2, Vec4,
     },
     std::sync::Arc,
 };
 
 struct Example {
-    msaa_renderpass: MultisampleRenderpass,
-    framebuffers: Vec<Framebuffer>,
-    immediate_mode_graphics: ImmediateModeGraphics,
     camera: nalgebra::Matrix4<f32>,
-    _asset_loader: AssetLoader,
-    vk_alloc: Arc<dyn MemoryAllocator>,
-    vk_dev: Arc<RenderDevice>,
+    example3_texture_id: i32,
 }
 
 impl State for Example {
     fn init(
         _window: &mut GlfwWindow,
         fps_limit: &mut FrameRateLimit,
-        vk_dev: &Arc<RenderDevice>,
-        vk_alloc: &Arc<dyn MemoryAllocator>,
+        asset_loader: &mut AssetLoader,
+        _vk_dev: &Arc<RenderDevice>,
+        _vk_alloc: &Arc<dyn MemoryAllocator>,
     ) -> Result<Self> {
         fps_limit.set_target_fps(120);
-        let msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
-            vk_dev.clone(),
-            vk_alloc.clone(),
-        )?;
-        let framebuffers = msaa_renderpass.create_swapchain_framebuffers()?;
-        let mut asset_loader =
-            AssetLoader::new(vk_dev.clone(), vk_alloc.clone())?;
-        let immediate_mode_graphics = ImmediateModeGraphics::new(
-            &msaa_renderpass,
-            &[
-                asset_loader.blank_white()?,
-                asset_loader.read_texture("assets/example3_tex1.jpg")?,
-            ],
-            vk_alloc.clone(),
-            vk_dev.clone(),
-        )?;
+
+        let example3_texture_id =
+            asset_loader.read_texture("assets/example3_tex1.jpg")?;
+
         Ok(Self {
-            msaa_renderpass,
-            framebuffers,
-            immediate_mode_graphics,
             camera: nalgebra::Matrix4::identity(),
-            _asset_loader: asset_loader,
-            vk_alloc: vk_alloc.clone(),
-            vk_dev: vk_dev.clone(),
+            example3_texture_id,
         })
     }
 
@@ -65,14 +43,6 @@ impl State for Example {
         _window: &GlfwWindow,
         framebuffer_size: (u32, u32),
     ) -> Result<()> {
-        self.msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
-            self.vk_dev.clone(),
-            self.vk_alloc.clone(),
-        )?;
-        self.framebuffers =
-            self.msaa_renderpass.create_swapchain_framebuffers()?;
-        self.immediate_mode_graphics
-            .rebuild_swapchain_resources(&self.msaa_renderpass)?;
         let (half_width, half_height) = (
             framebuffer_size.0 as f32 / 2.0,
             framebuffer_size.1 as f32 / 2.0,
@@ -88,41 +58,24 @@ impl State for Example {
         Ok(())
     }
 
-    fn update(
-        &mut self,
-        index: usize,
-        cmds: &ccthw::vulkan::CommandBuffer,
-    ) -> Result<()> {
-        unsafe {
-            self.msaa_renderpass.begin_renderpass_inline(
-                cmds,
-                &self.framebuffers[index],
-                [0.05, 0.05, 0.05, 1.0],
-                1.0,
-            );
-        }
-
-        let mut frame = self
-            .immediate_mode_graphics
-            .acquire_frame(index)
-            .with_context(|| "unable to acquire graphics2 frame")?;
+    fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
         frame.set_view_projection(self.camera)?;
 
         Tile {
             model: Rect::centered_at(-200.0, 0.0, 150.0, 150.0),
-            texture_index: 1,
+            texture_index: self.example3_texture_id,
             ..Default::default()
         }
-        .fill(&mut frame)?;
+        .fill(frame)?;
 
         let img2 = Tile {
             model: Rect::centered_at(200.0, 0.0, 200.0, 200.0),
             outline_width: 5.0,
-            texture_index: 1,
+            texture_index: self.example3_texture_id,
             ..Default::default()
         };
-        img2.fill(&mut frame)?;
-        img2.outline(&mut frame)?;
+        img2.fill(frame)?;
+        img2.outline(frame)?;
 
         Line {
             start: Vec2::new(350.0, 150.0),
@@ -131,7 +84,7 @@ impl State for Example {
             color: Vec4::new(0.5, 0.5, 0.8, 1.0),
             ..Default::default()
         }
-        .fill(&mut frame)?;
+        .fill(frame)?;
 
         Line {
             start: Vec2::new(350.0, -150.0),
@@ -140,13 +93,8 @@ impl State for Example {
             color: Vec4::new(0.5, 0.5, 0.8, 1.0),
             ..Default::default()
         }
-        .fill(&mut frame)?;
+        .fill(frame)?;
 
-        unsafe {
-            self.immediate_mode_graphics
-                .complete_frame(cmds, frame, index)?;
-            self.msaa_renderpass.end_renderpass(cmds);
-        }
         Ok(())
     }
 }

@@ -14,6 +14,7 @@ use crate::{
 pub(super) fn create_pipeline(
     msaa_renderpass: &MultisampleRenderpass,
     texture_count: u32,
+    enable_depth_testing: bool,
     vk_dev: Arc<RenderDevice>,
 ) -> Result<Pipeline, VulkanError> {
     let vertex_module = ShaderModule::from_spirv(
@@ -89,10 +90,15 @@ pub(super) fn create_pipeline(
         attachment_count: 1,
         ..Default::default()
     };
+    let depth_enabled = if enable_depth_testing {
+        vk::TRUE
+    } else {
+        vk::FALSE
+    };
     let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo {
         flags: vk::PipelineDepthStencilStateCreateFlags::empty(),
-        depth_test_enable: vk::FALSE,
-        depth_write_enable: vk::FALSE,
+        depth_test_enable: depth_enabled,
+        depth_write_enable: depth_enabled,
         min_depth_bounds: 0.0,
         max_depth_bounds: 1.0,
         depth_compare_op: vk::CompareOp::LESS,

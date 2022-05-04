@@ -39,7 +39,10 @@ impl OneTimeSubmitCommandPool {
 
     /// Submit commands to the configured GPU queue. This function blocks until
     /// all commands complete.
-    pub fn submit_sync_commands<Func, T>(&self, func: Func) -> Result<T>
+    pub fn submit_sync_commands<Func, T>(
+        &self,
+        func: Func,
+    ) -> Result<T, CommandBufferError>
     where
         Func: FnOnce(&Arc<RenderDevice>, vk::CommandBuffer) -> T,
     {
@@ -51,25 +54,33 @@ impl OneTimeSubmitCommandPool {
             };
             self.vk_dev
                 .logical_device
-                .begin_command_buffer(self.cmd.raw, &begin_info)?;
+                .begin_command_buffer(self.cmd.raw, &begin_info)
+                .map_err(CommandBufferError::UnableToBeginCommandBuffer)?;
 
             let result: T = func(&self.vk_dev, self.cmd.raw);
 
             self.vk_dev
                 .logical_device
-                .end_command_buffer(self.cmd.raw)?;
+                .end_command_buffer(self.cmd.raw)
+                .map_err(CommandBufferError::UnableToEndCommandBuffer)?;
 
             let submit_info = vk::SubmitInfo {
                 command_buffer_count: 1,
                 p_command_buffers: &self.cmd.raw,
                 ..Default::default()
             };
-            self.vk_dev.logical_device.queue_submit(
-                self.queue.queue,
-                &[submit_info],
-                vk::Fence::null(),
-            )?;
-            self.vk_dev.logical_device.device_wait_idle()?;
+            self.vk_dev
+                .logical_device
+                .queue_submit(
+                    self.queue.queue,
+                    &[submit_info],
+                    vk::Fence::null(),
+                )
+                .map_err(CommandBufferError::UnableToSubmitCommandBuffer)?;
+            self.vk_dev
+                .logical_device
+                .device_wait_idle()
+                .map_err(CommandBufferError::UnableToWaitForDeviceIdle)?;
 
             Ok(result)
         }

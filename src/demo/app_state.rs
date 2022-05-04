@@ -1,9 +1,11 @@
 use ::{anyhow::Result, std::sync::Arc};
 
 use crate::{
+    asset_loader::AssetLoader,
     glfw_window::GlfwWindow,
+    immediate_mode_graphics::Frame,
     timing::FrameRateLimit,
-    vulkan::{CommandBuffer, MemoryAllocator, RenderDevice},
+    vulkan::{MemoryAllocator, RenderDevice},
 };
 
 pub trait State {
@@ -11,19 +13,15 @@ pub trait State {
     fn init(
         window: &mut GlfwWindow,
         fps_limit: &mut FrameRateLimit,
+        asset_loader: &mut AssetLoader,
         vk_dev: &Arc<RenderDevice>,
         vk_alloc: &Arc<dyn MemoryAllocator>,
     ) -> Result<Self>
     where
         Self: Sized;
 
-    /// Update application state and push per-frame rendering commands to the
-    /// given buffer.
-    fn update(
-        &mut self,
-        swapchain_index: usize,
-        frame_cmds: &CommandBuffer,
-    ) -> Result<()>;
+    /// Draw a single application frame to the screen.
+    fn draw_frame(&mut self, frame: &mut Frame) -> Result<()>;
 
     /// Rebuild any swapchain dependent resources after it's been invalidated
     /// for some reason.
