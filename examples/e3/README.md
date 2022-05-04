@@ -2,7 +2,7 @@
 
 This example uses the application structure defined in the demo module. This
 removes a bunch of the GLFW boilerplate and lets the app jump straight into
-rendering graphics.
+rendering immediate mode graphics.
 
 ## Usage
 

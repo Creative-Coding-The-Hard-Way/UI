@@ -1,6 +1,11 @@
 use crate::{vec2, Vec2};
 
 /// Define a rectangular region on the screen.
+/// Values assume a coordinate system where (0,0) is the top left corner of the
+/// screen and (width,height) is the bottom right corner of the screen.
+///
+/// E.g. positive X points to the right, and positive Y points down.
+///
 #[derive(Debug, Copy, Clone)]
 pub struct Rect {
     pub top_left: Vec2,
@@ -22,9 +27,9 @@ impl Rect {
         let half_height = 0.5 * height;
         let half_width = 0.5 * width;
         Self::new(
-            y + half_height,
-            x - half_width,
             y - half_height,
+            x - half_width,
+            y + half_height,
             x + half_width,
         )
     }

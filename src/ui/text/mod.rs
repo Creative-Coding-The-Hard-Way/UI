@@ -163,6 +163,11 @@ impl Text {
             }
             previous_glyph = Some(glyph.clone());
 
+            // Round each time we loop, this helps to prevent an accumulation
+            // of little errors that make the text look misaligned.
+            cursor.x = cursor.x.round();
+            cursor.y = cursor.y.round();
+
             glyphs.push(glyph);
         }
 
@@ -187,9 +192,9 @@ impl Text {
                     Tile {
                         uv: *tex_coords,
                         model: Rect::new(
-                            pos.y - bounds.min.y,
+                            pos.y + bounds.min.y,
                             pos.x + bounds.min.x,
-                            pos.y - bounds.max.y,
+                            pos.y + bounds.max.y,
                             pos.x + bounds.max.x,
                         ),
                         texture_index: self.texture_index,

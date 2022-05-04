@@ -7,9 +7,12 @@ use ::{
         immediate_mode_graphics::{Drawable, Frame},
         math::projections,
         timing::FrameRateLimit,
-        ui::primitives::{Line, Rect, Tile},
+        ui::{
+            primitives::{Line, Rect, Tile},
+            text::Text,
+        },
+        vec2,
         vulkan::{MemoryAllocator, RenderDevice},
-        Vec2, Vec4,
     },
     std::sync::Arc,
 };
@@ -17,11 +20,14 @@ use ::{
 struct Example {
     camera: nalgebra::Matrix4<f32>,
     example3_texture_id: i32,
+    big_text: Text,
+    little_text: Text,
+    screen_dims: (f32, f32),
 }
 
 impl State for Example {
     fn init(
-        _window: &mut GlfwWindow,
+        window: &mut GlfwWindow,
         fps_limit: &mut FrameRateLimit,
         asset_loader: &mut AssetLoader,
         _vk_dev: &Arc<RenderDevice>,
@@ -29,12 +35,28 @@ impl State for Example {
     ) -> Result<Self> {
         fps_limit.set_target_fps(120);
 
+        let (w, h) = window.window.get_framebuffer_size();
         let example3_texture_id =
             asset_loader.read_texture("assets/example3_tex1.jpg")?;
+
+        let big_text = Text::from_font_file(
+            "assets/Roboto-Regular.ttf",
+            64.0,
+            asset_loader,
+        )?;
+
+        let little_text = Text::from_font_file(
+            "assets/Roboto-Regular.ttf",
+            32.0,
+            asset_loader,
+        )?;
 
         Ok(Self {
             camera: nalgebra::Matrix4::identity(),
             example3_texture_id,
+            screen_dims: (w as f32, h as f32),
+            big_text,
+            little_text,
         })
     }
 
@@ -43,15 +65,13 @@ impl State for Example {
         _window: &GlfwWindow,
         framebuffer_size: (u32, u32),
     ) -> Result<()> {
-        let (half_width, half_height) = (
-            framebuffer_size.0 as f32 / 2.0,
-            framebuffer_size.1 as f32 / 2.0,
-        );
+        self.screen_dims =
+            (framebuffer_size.0 as f32, framebuffer_size.1 as f32);
         self.camera = projections::ortho(
-            -half_width,
-            half_width,
-            -half_height,
-            half_height,
+            0.0,
+            framebuffer_size.0 as f32,
+            framebuffer_size.1 as f32,
+            0.0,
             0.0,
             1.0,
         );
@@ -62,14 +82,14 @@ impl State for Example {
         frame.set_view_projection(self.camera)?;
 
         Tile {
-            model: Rect::centered_at(-200.0, 0.0, 150.0, 150.0),
+            model: Rect::centered_at(200.0, 200.0, 150.0, 150.0),
             texture_index: self.example3_texture_id,
             ..Default::default()
         }
         .fill(frame)?;
 
         let img2 = Tile {
-            model: Rect::centered_at(200.0, 0.0, 200.0, 200.0),
+            model: Rect::centered_at(500.0, 200.0, 200.0, 200.0),
             outline_width: 5.0,
             texture_index: self.example3_texture_id,
             ..Default::default()
@@ -78,19 +98,34 @@ impl State for Example {
         img2.outline(frame)?;
 
         Line {
-            start: Vec2::new(350.0, 150.0),
-            end: Vec2::new(-350.0, 150.0),
-            width: 2.0,
-            color: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            start: vec2(0.0, 50.0),
+            end: vec2(self.screen_dims.0, 50.0),
+            width: 5.0,
             ..Default::default()
         }
         .fill(frame)?;
 
         Line {
-            start: Vec2::new(350.0, -150.0),
-            end: Vec2::new(-350.0, -150.0),
-            width: 2.0,
-            color: Vec4::new(0.5, 0.5, 0.8, 1.0),
+            start: vec2(0.0, 350.0),
+            end: vec2(self.screen_dims.0, 350.0),
+            width: 5.0,
+            ..Default::default()
+        }
+        .fill(frame)?;
+
+        self.big_text
+            .draw_text(frame, vec2(50.0, 450.0), &"Hello World")?;
+
+        self.little_text.draw_text(
+            frame,
+            vec2(450.0, 450.0),
+            &"Hello World\nhello WORLD\nLorem Ipsum dolor",
+        )?;
+
+        Line {
+            start: vec2(50.0, 450.0),
+            end: vec2(self.screen_dims.0, 450.0),
+            width: 1.0,
             ..Default::default()
         }
         .fill(frame)?;
