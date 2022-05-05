@@ -45,6 +45,8 @@ impl<S: State> Application<S> {
 
         glfw_window.window.set_key_polling(true);
         glfw_window.window.set_framebuffer_size_polling(true);
+        glfw_window.window.set_cursor_pos_polling(true);
+        glfw_window.window.set_mouse_button_polling(true);
 
         let msaa_renderpass = MultisampleRenderpass::for_current_swapchain(
             vk_dev.clone(),

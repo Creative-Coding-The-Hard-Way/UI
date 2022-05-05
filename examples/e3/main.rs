@@ -5,11 +5,11 @@ use ::{
         demo::{run_application, State},
         glfw_window::GlfwWindow,
         immediate_mode_graphics::{Drawable, Frame},
-        math::projections,
         timing::FrameRateLimit,
         ui::{
             primitives::{Line, Rect, Tile},
             text::Text,
+            ui_projection,
         },
         vec2,
         vulkan::{MemoryAllocator, RenderDevice},
@@ -67,14 +67,7 @@ impl State for Example {
     ) -> Result<()> {
         self.screen_dims =
             (framebuffer_size.0 as f32, framebuffer_size.1 as f32);
-        self.camera = projections::ortho(
-            0.0,
-            framebuffer_size.0 as f32,
-            framebuffer_size.1 as f32,
-            0.0,
-            0.0,
-            1.0,
-        );
+        self.camera = ui_projection(framebuffer_size.0, framebuffer_size.1);
         Ok(())
     }
 
