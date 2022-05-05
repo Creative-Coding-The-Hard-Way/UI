@@ -9,41 +9,31 @@ use ::{
         ui::{
             self,
             primitives::{Rect, Tile},
-            ui_projection, MouseState,
+            MouseState,
         },
-        vec4,
+        vec2, vec4,
         vulkan::{MemoryAllocator, RenderDevice},
     },
     std::sync::Arc,
 };
 
 struct Example {
-    camera: nalgebra::Matrix4<f32>,
     ui: ui::State,
 }
 
 impl State for Example {
     fn init(
-        _window: &mut GlfwWindow,
+        window: &mut GlfwWindow,
         fps_limit: &mut FrameRateLimit,
         _asset_loader: &mut AssetLoader,
         _vk_dev: &Arc<RenderDevice>,
         _vk_alloc: &Arc<dyn MemoryAllocator>,
     ) -> Result<Self> {
         fps_limit.set_target_fps(120);
+        let screen_dimensions = window.window.get_framebuffer_size();
         Ok(Self {
-            camera: nalgebra::Matrix4::identity(),
-            ui: ui::State::new(),
+            ui: ui::State::new(screen_dimensions.0, screen_dimensions.1),
         })
-    }
-
-    fn rebuild_swapchain_resources(
-        &mut self,
-        _window: &GlfwWindow,
-        framebuffer_size: (u32, u32),
-    ) -> Result<()> {
-        self.camera = ui_projection(framebuffer_size.0, framebuffer_size.1);
-        Ok(())
     }
 
     fn handle_event(
@@ -55,19 +45,20 @@ impl State for Example {
     }
 
     fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
-        frame.set_view_projection(self.camera)?;
+        use ccthw::ui::Id;
+        frame.set_view_projection(self.ui.get_projection())?;
 
-        let mouse = self.ui.get_mouse_position();
-        Tile {
-            model: Rect::centered_at(mouse.x, mouse.y, 150.0, 150.0),
-            color: if self.ui.get_mouse_state() == MouseState::Pressed {
-                vec4(0.0, 0.0, 0.0, 1.0)
-            } else {
-                vec4(1.0, 1.0, 1.0, 1.0)
-            },
-            ..Default::default()
+        self.ui.prepare();
+
+        if self.ui.button(frame, Id::Number(1), vec2(200.0, 200.0))? {
+            log::info!("CLICKED One!")
         }
-        .fill(frame)?;
+
+        if self.ui.button(frame, Id::Number(2), vec2(500.0, 200.0))? {
+            log::info!("CLICKED two!")
+        }
+
+        self.ui.finish();
 
         Ok(())
     }

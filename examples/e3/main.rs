@@ -7,9 +7,9 @@ use ::{
         immediate_mode_graphics::{Drawable, Frame},
         timing::FrameRateLimit,
         ui::{
+            self,
             primitives::{Line, Rect, Tile},
             text::Text,
-            ui_projection,
         },
         vec2,
         vulkan::{MemoryAllocator, RenderDevice},
@@ -18,7 +18,7 @@ use ::{
 };
 
 struct Example {
-    camera: nalgebra::Matrix4<f32>,
+    ui: ui::State,
     example3_texture_id: i32,
     big_text: Text,
     little_text: Text,
@@ -52,7 +52,7 @@ impl State for Example {
         )?;
 
         Ok(Self {
-            camera: nalgebra::Matrix4::identity(),
+            ui: ui::State::new(w, h),
             example3_texture_id,
             screen_dims: (w as f32, h as f32),
             big_text,
@@ -60,19 +60,8 @@ impl State for Example {
         })
     }
 
-    fn rebuild_swapchain_resources(
-        &mut self,
-        _window: &GlfwWindow,
-        framebuffer_size: (u32, u32),
-    ) -> Result<()> {
-        self.screen_dims =
-            (framebuffer_size.0 as f32, framebuffer_size.1 as f32);
-        self.camera = ui_projection(framebuffer_size.0, framebuffer_size.1);
-        Ok(())
-    }
-
     fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
-        frame.set_view_projection(self.camera)?;
+        frame.set_view_projection(self.ui.get_projection())?;
 
         Tile {
             model: Rect::centered_at(200.0, 200.0, 150.0, 150.0),

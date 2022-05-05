@@ -64,9 +64,19 @@ impl Rect {
     }
 
     /// Translate this rect by the given offset.
-    pub fn translate(&mut self, offset: Vec2) {
-        self.top_left += offset;
-        self.bottom_right += offset;
+    pub fn translate(&self, offset: Vec2) -> Self {
+        Self {
+            top_left: self.top_left + offset,
+            bottom_right: self.bottom_right + offset,
+        }
+    }
+
+    /// Returns true if the given point is inside the current rectangular
+    /// region.
+    pub fn contains(&self, point: Vec2) -> bool {
+        let horizontal = self.left() <= point.x && point.x <= self.right();
+        let vertical = self.top() <= point.y && point.y <= self.bottom();
+        horizontal && vertical
     }
 }
 
@@ -100,8 +110,7 @@ mod test {
 
     #[test]
     fn test_translate() {
-        let mut rect = Rect::new(10.0, -9.0, -10.0, 9.0);
-        rect.translate(vec2(9.0, 10.0));
+        let rect = Rect::new(10.0, -9.0, -10.0, 9.0).translate(vec2(9.0, 10.0));
 
         assert_eq!(rect.left(), 0.0);
         assert_eq!(rect.right(), 18.0);
@@ -110,5 +119,25 @@ mod test {
 
         assert_eq!(rect.width(), 18.0);
         assert_eq!(rect.height(), 20.0);
+    }
+
+    #[test]
+    fn test_contains() {
+        let rect = Rect::centered_at(0.0, 0.0, 10.0, 10.0);
+
+        // check a point inside
+        assert!(rect.contains(vec2(0.0, 0.0)));
+
+        // check the corners
+        assert!(rect.contains(vec2(-5.0, -5.0)), "msg");
+        assert!(rect.contains(vec2(5.0, -5.0)));
+        assert!(rect.contains(vec2(-5.0, 5.0)));
+        assert!(rect.contains(vec2(5.0, 5.0)));
+
+        // check outside the rect
+        assert!(!rect.contains(vec2(-6.0, 0.0)));
+        assert!(!rect.contains(vec2(6.0, 0.0)));
+        assert!(!rect.contains(vec2(0.0, 6.0)));
+        assert!(!rect.contains(vec2(0.0, -6.0)));
     }
 }

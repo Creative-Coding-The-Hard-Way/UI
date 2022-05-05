@@ -27,9 +27,11 @@ pub trait State {
     /// for some reason.
     fn rebuild_swapchain_resources(
         &mut self,
-        window: &GlfwWindow,
-        framebuffer_size: (u32, u32),
-    ) -> Result<()>;
+        _window: &GlfwWindow,
+        _framebuffer_size: (u32, u32),
+    ) -> Result<()> {
+        Ok(())
+    }
 
     /// Handle GLFW window events.
     fn handle_event(
