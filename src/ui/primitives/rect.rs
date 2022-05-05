@@ -35,20 +35,25 @@ impl Rect {
     }
 
     /// The leftmost extent of the Rectangle.
+    #[inline]
     pub fn left(&self) -> f32 {
         self.top_left.x
     }
 
     /// The rightmost extent of the Rectangle.
+    #[inline]
     pub fn right(&self) -> f32 {
         self.bottom_right.x
     }
 
     /// The top of the rectangle
+    #[inline]
     pub fn top(&self) -> f32 {
         self.top_left.y
     }
 
+    /// The bottom of the rectangle
+    #[inline]
     pub fn bottom(&self) -> f32 {
         self.bottom_right.y
     }
@@ -77,6 +82,20 @@ impl Rect {
         let horizontal = self.left() <= point.x && point.x <= self.right();
         let vertical = self.top() <= point.y && point.y <= self.bottom();
         horizontal && vertical
+    }
+
+    /// Create a new rect which fully contains both self and the provided rect.
+    pub fn expand(&self, other: Rect) -> Self {
+        Self {
+            top_left: vec2(
+                self.left().min(other.left()),
+                self.top().min(other.top()),
+            ),
+            bottom_right: vec2(
+                self.right().max(other.right()),
+                self.bottom().max(other.bottom()),
+            ),
+        }
     }
 }
 
@@ -139,5 +158,17 @@ mod test {
         assert!(!rect.contains(vec2(6.0, 0.0)));
         assert!(!rect.contains(vec2(0.0, 6.0)));
         assert!(!rect.contains(vec2(0.0, -6.0)));
+    }
+
+    #[test]
+    fn test_expand() {
+        let rect = Rect::new(0.0, 0.0, 10.0, 10.0);
+        let other = Rect::new(20.0, 2.0, 23.0, 5.0);
+        let expanded = rect.expand(other);
+
+        assert_eq!(expanded.top(), 0.0);
+        assert_eq!(expanded.left(), 0.0);
+        assert_eq!(expanded.right(), 10.0);
+        assert_eq!(expanded.bottom(), 23.0);
     }
 }

@@ -3,15 +3,11 @@ use ::{
     ccthw::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
+        gen_id,
         glfw_window::GlfwWindow,
-        immediate_mode_graphics::{Drawable, Frame},
+        immediate_mode_graphics::Frame,
         timing::FrameRateLimit,
-        ui::{
-            self,
-            primitives::{Rect, Tile},
-            MouseState,
-        },
-        vec2, vec4,
+        ui, vec2,
         vulkan::{MemoryAllocator, RenderDevice},
     },
     std::sync::Arc,
@@ -50,12 +46,12 @@ impl State for Example {
 
         self.ui.prepare();
 
-        if self.ui.button(frame, Id::Number(1), vec2(200.0, 200.0))? {
-            log::info!("CLICKED One!")
+        if self.ui.button(frame, gen_id!(), vec2(200.0, 200.0))? {
+            log::info!("CLICKED button 1");
         }
 
-        if self.ui.button(frame, Id::Number(2), vec2(500.0, 200.0))? {
-            log::info!("CLICKED two!")
+        if self.ui.button(frame, gen_id!(), vec2(500.0, 200.0))? {
+            log::info!("CLICKED button 2");
         }
 
         self.ui.finish();

@@ -11,4 +11,4 @@ pub mod text;
 
 mod state;
 
-pub use self::state::{Id, MouseState, State};
+pub use self::state::{id_hash, Id, MouseState, State};
