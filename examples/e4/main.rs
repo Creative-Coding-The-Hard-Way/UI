@@ -7,7 +7,7 @@ use ::{
         glfw_window::GlfwWindow,
         immediate_mode_graphics::Frame,
         timing::FrameRateLimit,
-        ui, vec2,
+        ui::{self, primitives::Rect, Button},
         vulkan::{MemoryAllocator, RenderDevice},
     },
     std::sync::Arc,
@@ -15,6 +15,7 @@ use ::{
 
 struct Example {
     ui: ui::State,
+    counter: i32,
 }
 
 impl State for Example {
@@ -29,6 +30,7 @@ impl State for Example {
         let screen_dimensions = window.window.get_framebuffer_size();
         Ok(Self {
             ui: ui::State::new(screen_dimensions.0, screen_dimensions.1),
+            counter: 0,
         })
     }
 
@@ -41,24 +43,37 @@ impl State for Example {
     }
 
     fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
-        use ccthw::ui::Id;
         frame.set_view_projection(self.ui.get_projection())?;
 
-        self.ui.prepare();
+        let counter = &mut self.counter;
+        self.ui.render(|ui| {
+            use ccthw::ui::Id;
+            let button1 = Button {
+                dimensions: Rect::centered_at(200.0, 200.0, 200.0, 100.0),
+                ..Default::default()
+            };
 
-        if self.ui.button(frame, gen_id!(), vec2(200.0, 200.0))? {
-            log::info!("CLICKED button 1");
-        }
+            let button2 = Button {
+                dimensions: Rect::centered_at(500.0, 200.0, 200.0, 100.0),
+                ..Default::default()
+            };
 
-        if self.ui.button(frame, gen_id!(), vec2(500.0, 200.0))? {
-            log::info!("CLICKED button 2");
-        }
+            if ui.button(frame, gen_id!(), button1)? {
+                log::info!("CLICKED button 1, {} times", *counter);
+                *counter = *counter + 1;
+            }
 
-        self.ui.finish();
+            if ui.button(frame, gen_id!(), button2)? {
+                log::info!("CLICKED button 2");
+            }
+            Ok(())
+        })?;
 
         Ok(())
     }
 }
+
+impl Example {}
 
 fn main() -> Result<()> {
     run_application::<Example>()

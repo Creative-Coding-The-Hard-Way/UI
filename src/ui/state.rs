@@ -1,44 +1,29 @@
 use crate::{
-    immediate_mode_graphics::{Drawable, Frame},
+    immediate_mode_graphics::Frame,
     math,
-    ui::primitives::{Rect, Tile},
-    vec2, vec4, Mat4, Vec2,
+    ui::{Bounds, Button, Id},
+    vec2, Mat4, Vec2,
 };
 
 use ::anyhow::Result;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub enum Id {
-    Number(i32),
-}
-
-/// Generate a simple hash from a given string at compile time.
-pub const fn id_hash(content: &str, line: u32, column: u32, seed: u32) -> u32 {
-    let content_bytes = content.as_bytes();
-    let mut hash = 3581u32;
-    let mut i: usize = 0;
-    while i < content_bytes.len() {
-        hash = hash.wrapping_mul(33).wrapping_add(content_bytes[i] as u32);
-        i += 1;
-    }
-    hash = hash.wrapping_mul(33).wrapping_add(line);
-    hash = hash.wrapping_mul(33).wrapping_add(column);
-    hash = hash.wrapping_mul(33).wrapping_add(seed);
-    return hash;
-}
-
-#[macro_export]
-macro_rules! gen_id {
-    () => {{
-        const ID: u32 = ccthw::ui::id_hash(file!(), line!(), column!(), 17);
-        Id::Number(ID as i32)
-    }};
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MouseState {
     Pressed,
     NotPressed,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ActiveItem {
+    /// Indicates that no item is currently active.
+    None,
+
+    /// The id of the currently active item.
+    Some(Id),
+
+    /// No item is active and it's not possible for an item to *become*
+    /// active.
+    Unavailable,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -52,8 +37,8 @@ pub struct State {
     /// the bottom right of the screen.
     projection: Mat4,
 
-    active_item: Id,
-    hot_item: Id,
+    active_item: ActiveItem,
+    hot_item: Option<Id>,
 }
 
 impl Default for State {
@@ -63,8 +48,8 @@ impl Default for State {
             mouse_state: MouseState::NotPressed,
             screen_dimensions: vec2(1.0, 1.0),
             projection: Mat4::identity(),
-            active_item: Id::Number(0),
-            hot_item: Id::Number(0),
+            active_item: ActiveItem::None,
+            hot_item: None,
         }
     }
 }
@@ -109,66 +94,56 @@ impl State {
         &mut self,
         frame: &mut Frame,
         id: Id,
-        pos: Vec2,
+        button: Button,
     ) -> Result<bool> {
-        let region = Rect::new(pos.y, pos.x, pos.y + 128.0, pos.x + 256.0);
-        if region.contains(self.get_mouse_position()) {
-            self.hot_item = id; // on hover
-            if self.active_item == Id::Number(0)
+        if button.bounds().contains(self.get_mouse_position()) {
+            self.hot_item = Some(id); // on hover
+            if self.active_item == ActiveItem::None
                 && self.get_mouse_state() == MouseState::Pressed
             {
-                self.active_item = id; // on click
+                // activate the button when clicked
+                self.active_item = ActiveItem::Some(id);
             }
         }
 
-        // render drop shadow
-        Tile {
-            model: region.translate(vec2(15.0, 15.0)),
-            color: vec4(0.0, 0.0, 0.0, 0.2),
-            ..Default::default()
-        }
-        .fill(frame)?;
-
-        if self.hot_item == id {
-            if self.active_item == id {
-                Tile {
-                    model: region.translate(vec2(5.0, 5.0)),
-                    ..Default::default()
-                }
-                .fill(frame)?;
+        if self.hot_item == Some(id) {
+            if self.active_item == ActiveItem::Some(id) {
+                button.draw_active(frame)?;
             } else {
-                Tile {
-                    model: region,
-                    ..Default::default()
-                }
-                .fill(frame)?;
+                button.draw_focused(frame)?;
             }
         } else {
-            Tile {
-                model: region,
-                color: vec4(0.5, 0.5, 0.5, 1.0),
-                ..Default::default()
-            }
-            .fill(frame)?;
+            button.draw_unfocused(frame)?;
         }
 
-        Ok(self.get_mouse_state() == MouseState::NotPressed
-            && self.hot_item == id
-            && self.active_item == id)
+        let click_complete =
+            // A click is complete when the mouse is no longer presesd
+            self.get_mouse_state() == MouseState::NotPressed
+
+            // But the mouse is over the current item
+            && self.hot_item == Some(id)
+
+            // And the current item *was* active this frame
+            && self.active_item == ActiveItem::Some(id);
+
+        Ok(click_complete)
     }
 
-    pub fn prepare(&mut self) {
-        self.hot_item = Id::Number(0);
-    }
+    pub fn render<F>(&mut self, mut func: F) -> Result<()>
+    where
+        F: FnMut(&mut Self) -> Result<()>,
+    {
+        self.hot_item = None;
+        func(self)?;
 
-    pub fn finish(&mut self) {
         if self.get_mouse_state() == MouseState::NotPressed {
-            self.active_item = Id::Number(0);
+            self.active_item = ActiveItem::None;
         } else {
-            if self.active_item == Id::Number(0) {
-                self.active_item = Id::Number(-1);
+            if self.active_item == ActiveItem::None {
+                self.active_item = ActiveItem::Unavailable;
             }
         }
+        Ok(())
     }
 
     /// Handle window events and update internal data structures.
