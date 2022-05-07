@@ -9,6 +9,7 @@ pub mod math;
 pub mod multisample_renderpass;
 pub mod timing;
 pub mod ui;
+pub mod ui2;
 pub mod vulkan;
 pub mod vulkan_ext;
 

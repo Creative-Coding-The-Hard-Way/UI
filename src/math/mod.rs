@@ -1,9 +1,5 @@
-use nalgebra;
-
-pub type Mat4 = nalgebra::Matrix4<f32>;
-
 pub mod projections {
-    use super::Mat4;
+    use crate::Mat4;
 
     /// Build an orthographic projection matrix which transforms the given
     /// coordinate bounds to the Vulkan view volume.
