@@ -3,8 +3,9 @@ use ::anyhow::Result;
 use crate::{
     immediate_mode_graphics::Frame,
     ui2::{
+        primitives::Dimensions,
         widgets::{Element, Widget},
-        Dimensions, Input, InternalState,
+        Input, InternalState,
     },
     vec2, Vec2,
 };

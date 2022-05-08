@@ -2,7 +2,7 @@ use ::anyhow::Result;
 
 use crate::{
     immediate_mode_graphics::Frame,
-    ui2::{widgets::Widget, Dimensions, Input, InternalState},
+    ui2::{primitives::Dimensions, widgets::Widget, Input, InternalState},
     Vec2,
 };
 

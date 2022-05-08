@@ -14,7 +14,7 @@ use ::{
     std::sync::Arc,
 };
 
-use example_ui::ExampleUi;
+use example_ui::{ExampleMessage, ExampleUi};
 
 struct Example {
     ui: UI<ExampleUi>,
@@ -40,9 +40,14 @@ impl State for Example {
     fn handle_event(
         &mut self,
         event: glfw::WindowEvent,
-        _window: &mut GlfwWindow,
+        window: &mut GlfwWindow,
     ) -> Result<()> {
-        self.ui.handle_event(&event)?;
+        match self.ui.handle_event(&event)? {
+            Some(ExampleMessage::ToggleFullscreen) => {
+                window.toggle_fullscreen()?
+            }
+            None => (),
+        }
         Ok(())
     }
 

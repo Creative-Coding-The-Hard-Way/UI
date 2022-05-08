@@ -1,10 +1,10 @@
 use crate::{
     immediate_mode_graphics::Frame,
     ui2::{
-        primitives::Rect,
+        primitives::{Dimensions, Rect},
         ui_screen_space_projection,
         widgets::{Element, Widget},
-        Dimensions, Input, InternalState,
+        Input, InternalState,
     },
     vec2, Mat4,
 };
@@ -49,7 +49,10 @@ impl<C: UIState> UI<C> {
 
     /// Handle GLFW input events.
     /// Events are dispatched to the UI implementation automatically.
-    pub fn handle_event(&mut self, event: &glfw::WindowEvent) -> Result<()> {
+    pub fn handle_event(
+        &mut self,
+        event: &glfw::WindowEvent,
+    ) -> Result<Option<C::Message>> {
         use glfw::WindowEvent;
 
         self.input.handle_event(event);
@@ -63,18 +66,20 @@ impl<C: UIState> UI<C> {
             _ => (),
         }
 
-        if let Some(message) = self.current_view.handle_event(
+        let message_opt = self.current_view.handle_event(
             &mut self.internal_state,
             &self.input,
             event,
-        )? {
-            self.custom.update(&message);
+        )?;
+
+        if let Some(message) = &message_opt {
+            self.custom.update(message);
             self.flush();
         } else {
             self.layout();
         }
 
-        Ok(())
+        Ok(message_opt)
     }
 
     /// For the UI view to be regenerated and update the layout.

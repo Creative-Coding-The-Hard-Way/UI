@@ -1,7 +1,4 @@
-use crate::{
-    ui2::{Bounds, Dimensions},
-    vec2, Vec2,
-};
+use crate::{ui2::primitives::Dimensions, vec2, Vec2};
 
 /// Define a rectangular region on the screen.
 /// Values assume a coordinate system where (0,0) is the top left corner of the
@@ -103,14 +100,6 @@ impl Rect {
                 self.bottom().max(other.bottom()),
             ),
         }
-    }
-}
-
-impl Bounds for Rect {
-    /// The bounding box for any given rectangular region is simply itself.
-    #[inline]
-    fn bounds(&self) -> Rect {
-        *self
     }
 }
 

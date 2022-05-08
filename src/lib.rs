@@ -32,3 +32,38 @@ pub fn vec3(x: f32, y: f32, z: f32) -> Vec3 {
 pub fn vec4(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
     Vec4::new(x, y, z, w)
 }
+
+macro_rules! builder_field {
+    ($field:ident, $field_type:ty) => {
+        pub fn $field(self, $field: $field_type) -> Self {
+            Self { $field, ..self }
+        }
+    };
+}
+
+macro_rules! builder_field_into {
+    ($field:ident, $field_type:ty) => {
+        pub fn $field<T>(self, $field: T) -> Self
+        where
+            T: Into<$field_type>,
+        {
+            Self {
+                $field: $field.into(),
+                ..self
+            }
+        }
+    };
+}
+
+macro_rules! builder_field_some {
+    ($field:ident, $field_type:ty) => {
+        pub fn $field(self, $field: $field_type) -> Self {
+            Self {
+                $field: Some($field),
+                ..self
+            }
+        }
+    };
+}
+
+pub(crate) use {builder_field, builder_field_into, builder_field_some};

@@ -11,16 +11,12 @@ use crate::{math, Mat4};
 pub mod primitives;
 pub mod widgets;
 
-mod bounds;
-mod dimensions;
 mod id;
 mod input;
 mod internal_state;
 mod ui;
 
 pub use self::{
-    bounds::Bounds,
-    dimensions::Dimensions,
     id::{id_hash, Id},
     input::Input,
     internal_state::InternalState,
@@ -29,7 +25,7 @@ pub use self::{
 
 /// Create a new projection matrix which defines the UI Screen Space based
 /// on the given width and height.
-pub fn ui_screen_space_projection(viewport: Dimensions) -> Mat4 {
+pub fn ui_screen_space_projection(viewport: primitives::Dimensions) -> Mat4 {
     math::projections::ortho(
         0.0,
         viewport.width,
