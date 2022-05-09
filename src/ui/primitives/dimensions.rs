@@ -1,4 +1,4 @@
-use crate::{vec2, Vec2};
+use crate::{ui::primitives::Rect, vec2, Vec2};
 
 /// The Dimensions of something on screen.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -17,6 +17,28 @@ impl Dimensions {
     #[inline]
     pub fn min(&self, other: &Self) -> Self {
         Self::new(self.width.min(other.width), self.height.min(other.height))
+    }
+
+    /// Apply padding to these dimensions width and height.
+    pub fn with_padding(&self, padding: f32) -> Dimensions {
+        Self {
+            width: self.width + (padding * 2.0),
+            height: self.height + (padding * 2.0),
+        }
+    }
+
+    /// Apply margin to these dimensions width and height.
+    pub fn with_margin(&self, margin: f32) -> Dimensions {
+        Self {
+            width: self.width - (margin * 2.0),
+            height: self.height - (margin * 2.0),
+        }
+    }
+
+    /// Create a rect with top-left at (0, 0) and dimensions matching these
+    /// dimensions.
+    pub fn as_rect(&self) -> Rect {
+        Rect::new(0.0, 0.0, self.height, self.width)
     }
 }
 

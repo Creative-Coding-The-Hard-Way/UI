@@ -1,4 +1,4 @@
-use crate::{ui::Bounds, vec2, Vec2};
+use crate::{ui::primitives::Dimensions, vec2, Vec2};
 
 /// Define a rectangular region on the screen.
 /// Values assume a coordinate system where (0,0) is the top left corner of the
@@ -68,6 +68,10 @@ impl Rect {
         (self.top() - self.bottom()).abs()
     }
 
+    pub fn dimensions(&self) -> Dimensions {
+        (self.width(), self.height()).into()
+    }
+
     /// Translate this rect by the given offset.
     pub fn translate(&self, offset: Vec2) -> Self {
         Self {
@@ -97,19 +101,45 @@ impl Rect {
             ),
         }
     }
-}
 
-impl Bounds for Rect {
-    /// The bounding box for any given rectangular region is simply itself.
-    #[inline]
-    fn bounds(&self) -> Rect {
-        *self
+    /// Add padding to the rect.
+    pub fn with_padding(&self, padding: f32) -> Self {
+        let padding_vec = vec2(padding, padding);
+        Self {
+            top_left: self.top_left - padding_vec,
+            bottom_right: self.bottom_right + padding_vec,
+        }
+    }
+
+    /// Add margin to the rect.
+    pub fn with_margin(&self, margin: f32) -> Self {
+        let margin_vec = vec2(margin, margin);
+        Self {
+            top_left: self.top_left + margin_vec,
+            bottom_right: self.bottom_right - margin_vec,
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_box_model_padding() {
+        let padding = 15.0;
+        let rect = Rect::centered_at(0.0, 0.0, 20.0, 20.0);
+        let with_padding = rect.with_padding(padding);
+
+        assert_eq!(
+            rect.dimensions().width + padding * 2.0,
+            with_padding.width()
+        );
+        assert_eq!(
+            rect.dimensions().height + padding * 2.0,
+            with_padding.height()
+        );
+    }
 
     #[test]
     fn test_new() {

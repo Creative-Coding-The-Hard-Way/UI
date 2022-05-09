@@ -1,13 +1,11 @@
-# Application Structure
+# UI State
 
-This example uses the application structure defined in the demo module. This
-removes a bunch of the GLFW boilerplate and lets the app jump straight into
-rendering immediate mode graphics.
+This example uses the UI state structure to manage interactive ui elements.
 
 ## Usage
 
 ```
-cargo run --example e3
+cargo run --example e4
 ```
 
 ## Keybinds

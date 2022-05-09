@@ -3,9 +3,9 @@ use ::anyhow::Result;
 use crate::{
     builder_field, builder_field_into, builder_field_some,
     immediate_mode_graphics::{Drawable, Frame},
-    ui2::{
+    ui::{
         primitives::{Dimensions, Rect, Tile},
-        widgets::Widget,
+        widgets::{Element, Widget},
         Id, Input, InternalState,
     },
     vec2, vec4, Vec2, Vec4,
@@ -187,5 +187,14 @@ where
         position: Vec2,
     ) {
         self.position = position;
+    }
+}
+
+impl<Message> Into<Element<Message>> for Button<Message>
+where
+    Message: 'static + Copy,
+{
+    fn into(self) -> Element<Message> {
+        Element::new(self)
     }
 }

@@ -1,12 +1,14 @@
 mod align;
 mod button;
 mod element;
+mod label;
+mod panel;
 
 use ::anyhow::Result;
 
 use crate::{
     immediate_mode_graphics::Frame,
-    ui2::{primitives::Dimensions, Input, InternalState},
+    ui::{primitives::Dimensions, Input, InternalState},
     Vec2,
 };
 
@@ -14,8 +16,28 @@ pub use self::{
     align::{Align, HAlignment, VAlignment},
     button::Button,
     element::Element,
+    label::Label,
+    panel::Panel,
 };
 
+/// Widgets are UI building blocks. Widgets ar responsible for handling system
+/// events and transforming them into an instance of their own Message when
+/// the relevant sequence of events occurs.
+///
+/// # Layout
+///
+/// Widgets have two methods which are used for laying out the UI. First,
+/// the parent widget is responsible for calling [`dimensions`] on each of its
+/// children. The parent is then allowed to call [`set_top_left_position`] to
+/// position each child on the screen.
+///
+/// As such, the mental model is:
+///   1. widgets control their own dimensions
+///   2. widgets do not control their own position
+///   3. parent widgets control the position of child widgets
+///
+/// The root widget is always positioned at (0, 0), the top left of the screen.
+///
 pub trait Widget<Message> {
     /// Handle events for this widget.
     fn handle_event(

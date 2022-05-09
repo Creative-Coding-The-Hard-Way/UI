@@ -2,13 +2,14 @@ use ::anyhow::Result;
 
 use crate::{
     immediate_mode_graphics::Frame,
-    ui2::{primitives::Dimensions, widgets::Widget, Input, InternalState},
+    ui::{primitives::Dimensions, widgets::Widget, Input, InternalState},
     Vec2,
 };
 
 /// An Element is a type-erased widget.
 /// Elements allow UI objects to hold a variety of Widget implementations and
 /// dynamically dispatch function calls as needed.
+///
 pub struct Element<Message> {
     pub(crate) widget: Box<dyn Widget<Message>>,
 }

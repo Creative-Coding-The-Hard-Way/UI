@@ -1,8 +1,9 @@
 use ::anyhow::Result;
 
 use crate::{
+    builder_field,
     immediate_mode_graphics::Frame,
-    ui2::{
+    ui::{
         primitives::Dimensions,
         widgets::{Element, Widget},
         Input, InternalState,
@@ -26,46 +27,31 @@ pub enum VAlignment {
     Top,
 }
 
-/// A [`Widget`] which wraps a contiained Widget to automatically aligns it
+/// A [`Widget`] which wraps a contiained Widget to automatically align it
 /// within the available space.
 #[derive(Debug, Copy, Clone)]
 pub struct Align<Message, W: Widget<Message>> {
-    halignment: HAlignment,
-    valignment: VAlignment,
+    horizontal_alignment: HAlignment,
+    vertical_alignment: VAlignment,
     child: W,
     child_offset: Vec2,
     _phantom_data: std::marker::PhantomData<Message>,
-}
-
-impl<Message, W> Into<Element<Message>> for Align<Message, W>
-where
-    Message: 'static,
-    W: Widget<Message> + 'static,
-{
-    fn into(self) -> Element<Message> {
-        Element::new(self)
-    }
 }
 
 impl<Message, W: Widget<Message>> Align<Message, W> {
     /// Align the provided widget.
     pub fn new(child: W) -> Self {
         Self {
-            halignment: HAlignment::Center,
-            valignment: VAlignment::Center,
+            horizontal_alignment: HAlignment::Center,
+            vertical_alignment: VAlignment::Center,
             child,
             child_offset: vec2(0.0, 0.0),
             _phantom_data: Default::default(),
         }
     }
 
-    pub fn with_h_alignment(self, halignment: HAlignment) -> Self {
-        Self { halignment, ..self }
-    }
-
-    pub fn with_v_alignment(self, valignment: VAlignment) -> Self {
-        Self { valignment, ..self }
-    }
+    builder_field!(horizontal_alignment, HAlignment);
+    builder_field!(vertical_alignment, VAlignment);
 }
 
 impl<Message, W: Widget<Message>> Widget<Message> for Align<Message, W> {
@@ -96,17 +82,19 @@ impl<Message, W: Widget<Message>> Widget<Message> for Align<Message, W> {
         let remaining_height = max_size.height - child_dimensions.height;
 
         self.child_offset = vec2(
-            match self.halignment {
+            match self.horizontal_alignment {
                 HAlignment::Left => 0.0,
                 HAlignment::Center => 0.5 * remaining_width,
                 HAlignment::Right => remaining_width,
             },
-            match self.valignment {
+            match self.vertical_alignment {
                 VAlignment::Top => 0.0,
                 VAlignment::Center => 0.5 * remaining_height,
                 VAlignment::Bottom => remaining_height,
             },
         );
+        self.child_offset.x = self.child_offset.x.round();
+        self.child_offset.y = self.child_offset.y.round();
 
         *max_size
     }
@@ -120,5 +108,15 @@ impl<Message, W: Widget<Message>> Widget<Message> for Align<Message, W> {
             internal_state,
             position + self.child_offset,
         );
+    }
+}
+
+impl<Message, W> Into<Element<Message>> for Align<Message, W>
+where
+    Message: 'static,
+    W: Widget<Message> + 'static,
+{
+    fn into(self) -> Element<Message> {
+        Element::new(self)
     }
 }

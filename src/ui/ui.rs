@@ -1,6 +1,6 @@
 use crate::{
     immediate_mode_graphics::Frame,
-    ui2::{
+    ui::{
         primitives::{Dimensions, Rect},
         ui_screen_space_projection,
         widgets::{Element, Widget},
@@ -82,9 +82,29 @@ impl<C: UIState> UI<C> {
         Ok(message_opt)
     }
 
+    /// Render the UI to the frame.
+    ///
+    /// # NOTE
+    ///
+    /// The UI is assumed to have complete control over the frame. As such, it
+    /// sets the Frame's view projection. E.g. you'll get weird results if you
+    /// try to change the projection after rendering or if you otherwise try
+    /// to render to this frame.
+    ///
+    pub fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
+        self.flush();
+
+        frame.set_view_projection(self.projection)?;
+        self.current_view
+            .draw_frame(&mut self.internal_state, frame)?;
+        Ok(())
+    }
+}
+
+impl<C: UIState> UI<C> {
     /// For the UI view to be regenerated and update the layout.
-    /// This happens automatically after every update.
-    pub fn flush(&mut self) {
+    /// This happens automatically after every update and before every frame.
+    fn flush(&mut self) {
         self.current_view = self.custom.view();
         self.layout();
     }
@@ -96,21 +116,5 @@ impl<C: UIState> UI<C> {
             .dimensions(&mut self.internal_state, &self.viewport.dimensions());
         self.current_view
             .set_top_left_position(&mut self.internal_state, vec2(0.0, 0.0));
-    }
-
-    /// Render the UI to the frame.
-    ///
-    /// # NOTE
-    ///
-    /// The UI is assumed to have complete control over the frame. As such, it
-    /// sets the Frame's view projection. E.g. you'll get weird results if you
-    /// try to change the projection after rendering or if you otherwise try
-    /// to render to this frame.
-    ///
-    pub fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
-        frame.set_view_projection(self.projection)?;
-        self.current_view
-            .draw_frame(&mut self.internal_state, frame)?;
-        Ok(())
     }
 }

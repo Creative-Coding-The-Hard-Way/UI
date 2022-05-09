@@ -6,17 +6,34 @@
 ///!
 ///! E.g. positive X points to the right, and positive Y points down.
 ///!
-pub mod primitives;
-pub mod text;
+use crate::{math, Mat4};
 
-mod bounds;
-mod button;
+pub mod primitives;
+pub mod widgets;
+
+mod font;
 mod id;
-mod state;
+mod input;
+mod internal_state;
+mod ui;
 
 pub use self::{
-    bounds::Bounds,
-    button::Button,
+    font::Font,
     id::{id_hash, Id},
-    state::{MouseState, State},
+    input::Input,
+    internal_state::InternalState,
+    ui::{UIState, UI},
 };
+
+/// Create a new projection matrix which defines the UI Screen Space based
+/// on the given width and height.
+pub fn ui_screen_space_projection(viewport: primitives::Dimensions) -> Mat4 {
+    math::projections::ortho(
+        0.0,
+        viewport.width,
+        viewport.height,
+        0.0,
+        0.0,
+        1.0,
+    )
+}

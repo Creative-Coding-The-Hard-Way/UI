@@ -3,7 +3,7 @@ use ::std::{
     collections::HashMap,
 };
 
-use crate::ui2::Id;
+use crate::ui::Id;
 
 /// Internal State maintains any widget state that needs to persist between
 /// view rebuilds.
