@@ -1,19 +1,17 @@
 use ::anyhow::Result;
 
 use crate::{
-    builder_field,
     immediate_mode_graphics::{Drawable, Frame},
     ui::{
         primitives::{Dimensions, Tile},
         widgets::{Element, Widget},
         Font, Input, InternalState,
     },
-    vec2, Vec2,
+    Vec2,
 };
 
 pub struct Label {
     glyph_tiles: Vec<Tile>,
-    padding: f32,
 }
 
 impl Label {
@@ -23,13 +21,8 @@ impl Label {
         T: Into<String>,
     {
         let glyph_tiles = font.build_text_tiles(&content.into());
-        Self {
-            glyph_tiles,
-            padding: 0.0,
-        }
+        Self { glyph_tiles }
     }
-
-    builder_field!(padding, f32);
 }
 
 impl<Message> Widget<Message> for Label {
@@ -68,11 +61,7 @@ impl<Message> Widget<Message> for Label {
                 .fold(self.glyph_tiles[0].model, |rect, tile| {
                     rect.expand(tile.model)
                 });
-            let with_padding = Dimensions::new(
-                bounds.width() + (self.padding * 2.0),
-                bounds.height() + (self.padding * 2.0),
-            );
-            with_padding.min(max_size)
+            bounds.dimensions().min(max_size)
         }
     }
 
@@ -85,10 +74,8 @@ impl<Message> Widget<Message> for Label {
             return;
         }
 
-        let padding = vec2(self.padding, self.padding);
         let current_position = self.glyph_tiles[0].model.top_left;
-        let desired_position = position + padding;
-        let offset = desired_position - current_position;
+        let offset = position - current_position;
 
         for tile in &mut self.glyph_tiles {
             tile.model = tile.model.translate(offset);

@@ -4,7 +4,7 @@ use ::{
         asset_loader::AssetLoader,
         gen_id,
         ui::{
-            widgets::{Align, Button, Element, Label, Panel},
+            widgets::{Align, Button, Element, Label, Panel, WithPadding},
             Font, UIState,
         },
         vec4,
@@ -13,18 +13,24 @@ use ::{
 
 pub struct ExampleUi {
     em: f32,
+    panel_texture: i32,
     font: Font,
 }
 
 impl ExampleUi {
     pub fn new(asset_loader: &mut AssetLoader) -> Result<Self> {
-        let em = 48.0;
+        let em = 32.0;
         let font = Font::from_font_file(
             "assets/Roboto-Regular.ttf",
             1.0 * em,
             asset_loader,
         )?;
-        Ok(Self { em, font })
+        let panel_texture = asset_loader.read_texture("assets/Panel.png")?;
+        Ok(Self {
+            em,
+            panel_texture,
+            font,
+        })
     }
 }
 
@@ -44,11 +50,12 @@ impl UIState for ExampleUi {
             .dimensions((100.0, 50.0))
             .on_click(ExampleMessage::ToggleFullscreen);
 
-        let label = Label::new(&self.font, "HELLO WORLD").padding(self.em);
+        let label =
+            Label::new(&self.font, "Hello World:-").with_padding(self.em * 0.5);
 
-        Align::new(Panel::new(label).padding(self.em))
-            .vertical_alignment(ccthw::ui::widgets::VAlignment::Top)
-            .horizontal_alignment(ccthw::ui::widgets::HAlignment::Left)
+        Align::new(Panel::new(label).texture_index(self.panel_texture))
+            .vertical_alignment(ccthw::ui::widgets::VAlignment::Center)
+            .horizontal_alignment(ccthw::ui::widgets::HAlignment::Center)
             .into()
     }
 

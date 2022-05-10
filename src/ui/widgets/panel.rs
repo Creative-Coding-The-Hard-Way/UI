@@ -8,7 +8,7 @@ use crate::{
         widgets::{Element, Widget},
         Input, InternalState,
     },
-    vec2, vec4, Vec2, Vec4,
+    vec4, Vec2, Vec4,
 };
 
 /// A panel can be used as a background for a wrapped element. It's also a
@@ -18,7 +18,6 @@ use crate::{
 /// tl;dr - it's a bit like a <div>
 pub struct Panel<Message> {
     child: Element<Message>,
-    padding: f32,
     background: Rect,
     color: Vec4,
     texture_index: i32,
@@ -29,7 +28,6 @@ impl<Message> Panel<Message> {
     pub fn new(widget: impl Into<Element<Message>>) -> Self {
         Self {
             child: widget.into(),
-            padding: 0.0,
             background: Rect::new(0.0, 0.0, 0.0, 0.0),
             color: vec4(0.8, 0.8, 1.0, 0.1),
             texture_index: 0,
@@ -37,7 +35,6 @@ impl<Message> Panel<Message> {
     }
 
     builder_field!(color, Vec4);
-    builder_field!(padding, f32);
     builder_field!(texture_index, i32);
 }
 
@@ -72,17 +69,8 @@ impl<Message> Widget<Message> for Panel<Message> {
         max_size: &Dimensions,
     ) -> Dimensions {
         let child_dimensions = self.child.dimensions(internal_state, max_size);
-        self.background = Rect::new(
-            0.0,
-            0.0,
-            child_dimensions.height,
-            child_dimensions.width,
-        );
-        let with_padding = Dimensions::new(
-            child_dimensions.width + self.padding * 2.0,
-            child_dimensions.height + self.padding * 2.0,
-        );
-        with_padding.min(max_size)
+        self.background = child_dimensions.as_rect();
+        child_dimensions
     }
 
     fn set_top_left_position(
@@ -90,14 +78,9 @@ impl<Message> Widget<Message> for Panel<Message> {
         internal_state: &mut InternalState,
         position: Vec2,
     ) {
-        let current_position = self.background.top_left;
-        let desired_position = position + vec2(self.padding, self.padding);
-        let offset = desired_position - current_position;
-
+        let offset = position - self.background.top_left;
         self.background = self.background.translate(offset);
-
-        self.child
-            .set_top_left_position(internal_state, desired_position);
+        self.child.set_top_left_position(internal_state, position);
     }
 }
 

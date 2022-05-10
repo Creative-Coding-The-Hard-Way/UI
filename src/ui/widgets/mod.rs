@@ -2,6 +2,7 @@ mod align;
 mod button;
 mod element;
 mod label;
+mod padding;
 mod panel;
 
 use ::anyhow::Result;
@@ -17,6 +18,7 @@ pub use self::{
     button::Button,
     element::Element,
     label::Label,
+    padding::{PaddedWidget, WithPadding},
     panel::Panel,
 };
 

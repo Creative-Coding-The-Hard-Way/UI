@@ -1,6 +1,8 @@
 use crate::{builder_field, ui::primitives::Rect, vec4, Vec4};
 
-/// Padding can be used to grow a Rect in-place.
+/// Padding is part of the box model. Padding can be used to generate a new
+/// Rect based on an existing Rect. The new Rect grows out from the existing
+/// one.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Padding {
     pub left: f32,
@@ -11,12 +13,12 @@ pub struct Padding {
 
 impl Padding {
     /// Create a new padding instance with zeros for all sides.
-    fn zero() -> Self {
+    pub fn zero() -> Self {
         Default::default()
     }
 
     /// Create a new padding instance with the given value for all side.
-    fn all(padding: f32) -> Self {
+    pub fn all(padding: f32) -> Self {
         Self {
             top: padding,
             left: padding,
@@ -32,7 +34,7 @@ impl Padding {
 
     /// Construct a new Rect by applying padding outside. Generally, this
     /// *grows* the Rect.
-    fn apply(&self, rect: Rect) -> Rect {
+    pub fn apply(&self, rect: Rect) -> Rect {
         Rect::new(
             rect.top() - self.top,
             rect.left() - self.left,
@@ -86,6 +88,9 @@ mod test {
     fn test_apply() {
         let padding = Padding::zero().top(1.0).left(2.0).bottom(3.0).right(4.0);
         let rect = Rect::centered_at(0.0, 0.0, 20.0, 20.0);
+        let padded = padding.apply(rect);
+
+        assert_eq!(padded, Rect::new(-11.0, -12.0, 13.0, 14.0));
     }
 
     #[test]

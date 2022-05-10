@@ -6,7 +6,7 @@ use crate::{ui::primitives::Dimensions, vec2, Vec2};
 ///
 /// E.g. positive X points to the right, and positive Y points down.
 ///
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Rect {
     pub top_left: Vec2,
     pub bottom_right: Vec2,
@@ -101,45 +101,11 @@ impl Rect {
             ),
         }
     }
-
-    /// Add padding to the rect.
-    pub fn with_padding(&self, padding: f32) -> Self {
-        let padding_vec = vec2(padding, padding);
-        Self {
-            top_left: self.top_left - padding_vec,
-            bottom_right: self.bottom_right + padding_vec,
-        }
-    }
-
-    /// Add margin to the rect.
-    pub fn with_margin(&self, margin: f32) -> Self {
-        let margin_vec = vec2(margin, margin);
-        Self {
-            top_left: self.top_left + margin_vec,
-            bottom_right: self.bottom_right - margin_vec,
-        }
-    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn test_box_model_padding() {
-        let padding = 15.0;
-        let rect = Rect::centered_at(0.0, 0.0, 20.0, 20.0);
-        let with_padding = rect.with_padding(padding);
-
-        assert_eq!(
-            rect.dimensions().width + padding * 2.0,
-            with_padding.width()
-        );
-        assert_eq!(
-            rect.dimensions().height + padding * 2.0,
-            with_padding.height()
-        );
-    }
 
     #[test]
     fn test_new() {
