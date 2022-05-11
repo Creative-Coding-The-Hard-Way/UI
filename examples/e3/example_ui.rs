@@ -15,6 +15,7 @@ pub struct ExampleUi {
     em: f32,
     panel_texture: i32,
     font: Font,
+    is_fullscreen: bool,
 }
 
 impl ExampleUi {
@@ -30,6 +31,7 @@ impl ExampleUi {
             em,
             panel_texture,
             font,
+            is_fullscreen: false,
         })
     }
 }
@@ -43,23 +45,33 @@ impl UIState for ExampleUi {
     type Message = ExampleMessage;
 
     fn view(&self) -> Element<Self::Message> {
-        let _toggle_fullscreen_button = Button::new(gen_id!())
+        let message = if self.is_fullscreen {
+            "Windowed"
+        } else {
+            "Fullscreen"
+        };
+        let label = Label::new(&self.font, message).with_padding(self.em * 0.5);
+
+        let toggle_fullscreen_button = Button::new(gen_id!(), label)
             .color(vec4(0.1, 0.1, 0.1, 1.0))
             .hover_color(vec4(0.3, 0.3, 0.3, 1.0))
             .pressed_color(vec4(0.5, 0.5, 0.5, 1.0))
-            .dimensions((100.0, 50.0))
-            .on_click(ExampleMessage::ToggleFullscreen);
+            .on_click(ExampleMessage::ToggleFullscreen)
+            .with_padding(1.0 * self.em);
 
-        let label =
-            Label::new(&self.font, "Hello World:-").with_padding(self.em * 0.5);
-
-        Align::new(Panel::new(label).texture_index(self.panel_texture))
-            .vertical_alignment(ccthw::ui::widgets::VAlignment::Center)
-            .horizontal_alignment(ccthw::ui::widgets::HAlignment::Center)
+        Align::new(toggle_fullscreen_button)
+            .vertical_alignment(ccthw::ui::widgets::VAlignment::Top)
+            .horizontal_alignment(ccthw::ui::widgets::HAlignment::Left)
             .into()
     }
 
     fn update(&mut self, message: &ExampleMessage) {
         log::info!("Clicked! {:?}", message);
+        match *message {
+            ExampleMessage::ToggleFullscreen => {
+                self.is_fullscreen = !self.is_fullscreen;
+            }
+            _ => (),
+        }
     }
 }

@@ -11,9 +11,7 @@ use crate::{
     vec4, Vec2, Vec4,
 };
 
-/// A panel can be used as a background for a wrapped element. It's also a
-/// convenient way to add additional padding to an element which may otherwise
-/// not include it.
+/// A panel can be used as a background for a wrapped element.
 ///
 /// tl;dr - it's a bit like a <div>
 pub struct Panel<Message> {

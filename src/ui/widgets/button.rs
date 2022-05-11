@@ -1,7 +1,7 @@
 use ::anyhow::Result;
 
 use crate::{
-    builder_field, builder_field_into, builder_field_some,
+    builder_field, builder_field_some,
     immediate_mode_graphics::{Drawable, Frame},
     ui::{
         primitives::{Dimensions, Rect, Tile},
@@ -33,15 +33,11 @@ pub struct Button<Message> {
     /// state.
     id: Id,
 
-    /// The button's current dimensions.
-    current_dimensions: Dimensions,
+    /// The button's content.
+    child: Element<Message>,
 
-    /// The button's original dimensions. It will attempt to return to this
-    /// size if the UI layout ever forces it to change.
-    dimensions: Dimensions,
-
-    /// The button's position on screen.
-    position: Vec2,
+    /// The space occupied by the button on screen.
+    background: Rect,
 
     /// The button's default color.
     color: Vec4,
@@ -57,12 +53,14 @@ pub struct Button<Message> {
 }
 
 impl<Message> Button<Message> {
-    pub fn new(id: Id) -> Self {
+    pub fn new<W>(id: Id, child: W) -> Self
+    where
+        W: Into<Element<Message>>,
+    {
         Self {
             id,
-            current_dimensions: (1, 1).into(),
-            dimensions: (1, 1).into(),
-            position: vec2(0.0, 0.0),
+            child: child.into(),
+            background: Rect::new(0.0, 0.0, 0.0, 0.0),
             color: vec4(1.0, 1.0, 1.0, 1.0),
             hover_color: vec4(1.0, 0.0, 0.0, 1.0),
             pressed_color: vec4(0.0, 0.0, 0.0, 1.0),
@@ -70,20 +68,11 @@ impl<Message> Button<Message> {
         }
     }
 
+    builder_field!(id, Id);
     builder_field!(color, Vec4);
     builder_field!(hover_color, Vec4);
     builder_field!(pressed_color, Vec4);
     builder_field_some!(on_click, Message);
-    builder_field_into!(dimensions, Dimensions);
-
-    fn bounds(&self) -> Rect {
-        Rect::new(
-            self.position.y,
-            self.position.x,
-            self.position.y + self.current_dimensions.height,
-            self.position.x + self.current_dimensions.width,
-        )
-    }
 }
 
 impl<Message> Widget<Message> for Button<Message>
@@ -102,7 +91,7 @@ where
         let state = internal_state.get_state_mut::<ButtonState>(&self.id);
         let message = match *event {
             WindowEvent::CursorPos(x, y) => {
-                if self.bounds().contains(vec2(x as f32, y as f32)) {
+                if self.background.contains(vec2(x as f32, y as f32)) {
                     if *state == ButtonState::Inactive {
                         *state = ButtonState::Hover;
                     }
@@ -128,7 +117,7 @@ where
                 _,
             ) => {
                 if *state == ButtonState::Pressed {
-                    if self.bounds().contains(input.mouse_position) {
+                    if self.background.contains(input.mouse_position) {
                         *state = ButtonState::Hover;
                     } else {
                         *state = ButtonState::Inactive;
@@ -158,35 +147,35 @@ where
             ButtonState::Pressed => self.pressed_color,
         };
         Tile {
-            model: Rect::new(
-                self.position.y,
-                self.position.x,
-                self.position.y + self.current_dimensions.height,
-                self.position.x + self.current_dimensions.width,
-            ),
+            model: self.background,
             color,
             ..Default::default()
         }
-        .fill(frame)
+        .fill(frame)?;
+
+        self.child.draw_frame(internal_state, frame)
     }
 
     /// Containers grow to their maximum size by default.
     fn dimensions(
         &mut self,
-        _internal_state: &mut InternalState,
+        internal_state: &mut InternalState,
         max_size: &Dimensions,
     ) -> Dimensions {
-        self.current_dimensions = max_size.min(&self.dimensions);
-        self.current_dimensions
+        let child_dimensions = self.child.dimensions(internal_state, max_size);
+        self.background = child_dimensions.as_rect();
+        child_dimensions
     }
 
     /// Set the container's top left position.
     fn set_top_left_position(
         &mut self,
-        _internal_state: &mut InternalState,
+        internal_state: &mut InternalState,
         position: Vec2,
     ) {
-        self.position = position;
+        let offset = position - self.background.top_left;
+        self.background = self.background.translate(offset);
+        self.child.set_top_left_position(internal_state, position);
     }
 }
 
