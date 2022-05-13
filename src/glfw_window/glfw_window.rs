@@ -39,6 +39,7 @@ impl GlfwWindow {
         glfw.window_hint(glfw::WindowHint::ClientApi(
             glfw::ClientApiHint::NoApi,
         ));
+        glfw.window_hint(glfw::WindowHint::ScaleToMonitor(true));
 
         // Create a windowed application. Fullscreen can always be toggled
         // later.

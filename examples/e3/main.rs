@@ -28,11 +28,12 @@ impl State for Example {
         _vk_dev: &Arc<RenderDevice>,
         _vk_alloc: &Arc<dyn MemoryAllocator>,
     ) -> Result<Self> {
+        let scale = window.window.get_content_scale();
         fps_limit.set_target_fps(120);
         Ok(Self {
             ui: UI::new(
                 window.window.get_framebuffer_size().into(),
-                ExampleUi::new(asset_loader)?,
+                ExampleUi::new(scale.0, asset_loader)?,
             ),
         })
     }

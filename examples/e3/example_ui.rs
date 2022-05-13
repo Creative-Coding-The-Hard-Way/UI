@@ -4,7 +4,7 @@ use ::{
         asset_loader::AssetLoader,
         gen_id,
         ui::{
-            widgets::{Align, Button, Element, Label, Panel, WithPadding},
+            widgets::{Align, Button, Element, Label, WithPadding},
             Font, UIState,
         },
         vec4,
@@ -13,23 +13,23 @@ use ::{
 
 pub struct ExampleUi {
     em: f32,
-    panel_texture: i32,
     font: Font,
     is_fullscreen: bool,
 }
 
 impl ExampleUi {
-    pub fn new(asset_loader: &mut AssetLoader) -> Result<Self> {
-        let em = 32.0;
+    pub fn new(
+        content_scale: f32,
+        asset_loader: &mut AssetLoader,
+    ) -> Result<Self> {
+        let em = 16.0 * content_scale;
         let font = Font::from_font_file(
             "assets/Roboto-Regular.ttf",
             1.0 * em,
             asset_loader,
         )?;
-        let panel_texture = asset_loader.read_texture("assets/Panel.png")?;
         Ok(Self {
             em,
-            panel_texture,
             font,
             is_fullscreen: false,
         })
@@ -50,7 +50,8 @@ impl UIState for ExampleUi {
         } else {
             "Fullscreen"
         };
-        let label = Label::new(&self.font, message).with_padding(self.em * 0.5);
+        let label =
+            Label::new(&self.font, message).with_padding(0.25 * self.em);
 
         let toggle_fullscreen_button = Button::new(gen_id!(), label)
             .color(vec4(0.1, 0.1, 0.1, 1.0))
@@ -71,7 +72,6 @@ impl UIState for ExampleUi {
             ExampleMessage::ToggleFullscreen => {
                 self.is_fullscreen = !self.is_fullscreen;
             }
-            _ => (),
         }
     }
 }

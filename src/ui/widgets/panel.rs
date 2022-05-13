@@ -11,9 +11,8 @@ use crate::{
     vec4, Vec2, Vec4,
 };
 
-/// A panel can be used as a background for a wrapped element.
-///
-/// tl;dr - it's a bit like a <div>
+// A Panel is a colored rectangle, often used as a background for some other
+// element.
 pub struct Panel<Message> {
     child: Element<Message>,
     background: Rect,

@@ -4,6 +4,7 @@ mod element;
 mod label;
 mod padding;
 mod panel;
+mod slider;
 
 use ::anyhow::Result;
 
