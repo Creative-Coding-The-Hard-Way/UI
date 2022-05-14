@@ -6,13 +6,21 @@ use crate::{
     ui::{
         primitives::{Dimensions, Rect, Tile},
         widgets::{Element, Widget},
-        Input, InternalState,
+        Id, Input, InternalState,
     },
     vec4, Vec2, Vec4,
 };
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum SliderState {
+    Unfocused,
+    Focused,
+    Dragging,
+}
+
 /// A slider can be used to control a continuously varying value.
 pub struct Slider<Message> {
+    id: Id,
     on_change: FnOnce(f32) -> Message,
 }
 
@@ -23,7 +31,7 @@ impl<Message> Widget<Message> for Slider<Message> {
         input: &Input,
         event: &glfw::WindowEvent,
     ) -> Result<Option<Message>> {
-        todo!()
+        Ok(None)
     }
 
     fn draw_frame(

@@ -47,6 +47,7 @@ impl State for Example {
             Some(ExampleMessage::ToggleFullscreen) => {
                 window.toggle_fullscreen()?
             }
+            Some(_) => (),
             None => (),
         }
         Ok(())

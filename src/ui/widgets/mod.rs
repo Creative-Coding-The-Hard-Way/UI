@@ -4,6 +4,7 @@ mod element;
 mod label;
 mod padding;
 mod panel;
+mod row;
 mod slider;
 
 use ::anyhow::Result;
@@ -21,6 +22,7 @@ pub use self::{
     label::Label,
     padding::{PaddedWidget, WithPadding},
     panel::Panel,
+    row::Row,
 };
 
 /// Widgets are UI building blocks. Widgets ar responsible for handling system

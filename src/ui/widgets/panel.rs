@@ -18,6 +18,7 @@ pub struct Panel<Message> {
     background: Rect,
     color: Vec4,
     texture_index: i32,
+    grow: bool,
 }
 
 impl<Message> Panel<Message> {
@@ -28,9 +29,11 @@ impl<Message> Panel<Message> {
             background: Rect::new(0.0, 0.0, 0.0, 0.0),
             color: vec4(0.8, 0.8, 1.0, 0.1),
             texture_index: 0,
+            grow: false,
         }
     }
 
+    builder_field!(grow, bool);
     builder_field!(color, Vec4);
     builder_field!(texture_index, i32);
 }
@@ -66,8 +69,12 @@ impl<Message> Widget<Message> for Panel<Message> {
         max_size: &Dimensions,
     ) -> Dimensions {
         let child_dimensions = self.child.dimensions(internal_state, max_size);
-        self.background = child_dimensions.as_rect();
-        child_dimensions
+        if !self.grow {
+            self.background = child_dimensions.as_rect();
+        } else {
+            self.background = max_size.as_rect();
+        }
+        self.background.dimensions()
     }
 
     fn set_top_left_position(
