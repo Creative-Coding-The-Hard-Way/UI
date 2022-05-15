@@ -97,42 +97,76 @@ impl Font {
     }
 
     /// Build renderable tiles for the glyphs in the provided string.
-    pub fn build_text_tiles<T>(&self, content: &T) -> Vec<Tile>
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing two things:
+    ///
+    /// 1. The set of renderable Tiles which can be used to draw the text.
+    /// 2. The bounding rect for all Tiles based on font metrics. This can be
+    ///    used when laying out and positioning text on-screen to get a
+    ///    consistent arrangement regardless of which glyphs are being
+    ///    rendered.
+    ///
+    pub fn build_text_tiles<T>(&self, content: &T) -> (Vec<Tile>, Rect)
     where
         T: AsRef<str>,
     {
         let glyphs = Self::layout_text(&self.font, &content);
+        let mut tiles = Vec::with_capacity(glyphs.len());
+        let mut total_bounds: Option<Rect> = None;
+
         glyphs
             .into_iter()
             .filter_map(|glyph| {
                 // only draw glyphs that have an outline
-                let glyph_id = glyph.id;
                 self.font
-                    .outline_glyph(glyph)
-                    .map(|outline| (glyph_id, outline))
+                    .outline_glyph(glyph.clone())
+                    .map(|outline| (glyph, outline))
             })
-            .filter_map(|(glyph_id, outline)| {
+            .filter_map(|(glyph, outline)| {
                 // only draw glyphs if their texture coords are available
                 self.glyph_texture_coords
-                    .get(&glyph_id)
-                    .map(|tex_coords| (*tex_coords, outline))
+                    .get(&glyph.id)
+                    .map(|tex_coords| (glyph, *tex_coords, outline))
             })
-            .map(|(texture_coords, outline)| {
+            .for_each(|(glyph, texture_coords, outline)| {
                 // build a tile with the tex coords and outline
                 let bounds = outline.px_bounds();
-                Tile {
+                let tile = Tile {
                     model: Rect::new(
-                        bounds.min.y.floor(),
-                        bounds.min.x.floor(),
-                        bounds.max.y.floor(),
-                        bounds.max.x.floor(),
+                        bounds.min.y.round(),
+                        bounds.min.x.round(),
+                        bounds.max.y.round(),
+                        bounds.max.x.round(),
                     ),
                     uv: texture_coords,
                     texture_index: self.texture_index,
                     color: self.text_color,
                     ..Default::default()
+                };
+                tiles.push(tile);
+
+                // compute the updated total bounds rect
+                let glyph_bounds: Rect = self.font.glyph_bounds(&glyph).into();
+                if let Some(total) = total_bounds.take() {
+                    total_bounds = Some(total.expand(glyph_bounds));
+                } else {
+                    total_bounds = Some(glyph_bounds);
                 }
-            })
-            .collect()
+            });
+
+        (tiles, total_bounds.unwrap_or(Rect::new(0.0, 0.0, 0.0, 0.0)))
+    }
+
+    /// Get the computed line height for text rendered with this font.
+    pub fn line_height(&self) -> f32 {
+        self.font.height()
+    }
+}
+
+impl Into<Rect> for ab_glyph::Rect {
+    fn into(self) -> Rect {
+        Rect::new(self.min.y, self.min.x, self.max.y, self.max.x)
     }
 }

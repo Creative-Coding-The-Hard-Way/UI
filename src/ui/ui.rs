@@ -82,6 +82,16 @@ impl<C: UIState> UI<C> {
         Ok(message_opt)
     }
 
+    /// Get a reference to the current UI state.
+    pub fn state(&self) -> &C {
+        &self.custom
+    }
+
+    /// Get a reference to the current UI state.
+    pub fn state_mut(&mut self) -> &mut C {
+        &mut self.custom
+    }
+
     /// Render the UI to the frame.
     ///
     /// # NOTE

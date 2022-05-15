@@ -3,25 +3,29 @@ use ::anyhow::Result;
 use crate::{
     immediate_mode_graphics::{Drawable, Frame},
     ui::{
-        primitives::{Dimensions, Tile},
+        primitives::{Dimensions, Rect, Tile},
         widgets::{Element, Widget},
         Font, Input, InternalState,
     },
-    Vec2,
+    vec2, Vec2,
 };
 
 pub struct Label {
     glyph_tiles: Vec<Tile>,
+    bounds: Rect,
 }
 
 impl Label {
     /// Create a new label using the provided font.
-    pub fn new<T>(font: &Font, content: T) -> Self
+    pub fn new<T>(font: &Font, content: &T) -> Self
     where
-        T: Into<String>,
+        T: AsRef<str>,
     {
-        let glyph_tiles = font.build_text_tiles(&content.into());
-        Self { glyph_tiles }
+        let (glyph_tiles, bounds) = font.build_text_tiles(content);
+        Self {
+            glyph_tiles,
+            bounds,
+        }
     }
 }
 
@@ -55,13 +59,7 @@ impl<Message> Widget<Message> for Label {
         if self.glyph_tiles.len() == 0 {
             (0, 0).into()
         } else {
-            let bounds = self
-                .glyph_tiles
-                .iter()
-                .fold(self.glyph_tiles[0].model, |rect, tile| {
-                    rect.expand(tile.model)
-                });
-            bounds.dimensions().min(max_size)
+            self.bounds.dimensions().min(max_size)
         }
     }
 
@@ -74,8 +72,9 @@ impl<Message> Widget<Message> for Label {
             return;
         }
 
-        let current_position = self.glyph_tiles[0].model.top_left;
-        let offset = position - current_position;
+        let current_position = self.bounds.top_left;
+        let raw_offset = position - current_position;
+        let offset = vec2(raw_offset.x.round(), raw_offset.y.round());
 
         for tile in &mut self.glyph_tiles {
             tile.model = tile.model.translate(offset);

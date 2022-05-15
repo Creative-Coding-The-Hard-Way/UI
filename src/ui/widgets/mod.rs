@@ -1,11 +1,15 @@
 mod align;
 mod button;
+mod col;
 mod element;
+mod hsplit;
 mod label;
 mod padding;
 mod panel;
 mod row;
 mod slider;
+
+pub mod prelude;
 
 use ::anyhow::Result;
 
@@ -18,7 +22,9 @@ use crate::{
 pub use self::{
     align::{Align, HAlignment, VAlignment},
     button::Button,
+    col::Col,
     element::Element,
+    hsplit::HSplit,
     label::Label,
     padding::{PaddedWidget, WithPadding},
     panel::Panel,

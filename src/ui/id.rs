@@ -87,8 +87,8 @@ macro_rules! gen_id {
         ccthw::ui::Id::new(id)
     }};
     ($expr: expr) => {{
-        let id: u32 = ccthw::ui::id_hash(file!(), line!(), column!(), $expr);
-        ccthw::ui::Id::new(id)
+        let id: u32 = id_hash(file!(), line!(), column!(), $expr);
+        Id::new(id)
     }};
     () => {{
         const ID: u32 = ccthw::ui::id_hash(file!(), line!(), column!(), "seed");

@@ -1,4 +1,4 @@
-use ::ab_glyph::{FontArc, Glyph, PxScaleFont, ScaleFont};
+use ::ab_glyph::{Font as AbFont, FontArc, Glyph, PxScaleFont, ScaleFont};
 
 use crate::ui::Font;
 
@@ -36,13 +36,13 @@ impl Font {
                 cursor.x += kern;
             }
 
+            cursor.x = cursor.x.round();
+            cursor.y = cursor.y.round();
             glyph.position = cursor;
-            glyphs.push(glyph);
+            glyphs.push(glyph.clone());
 
             // Advance the cursor and snap everything to exact pixel values.
             cursor.x += font.h_advance(glyph_id);
-            cursor.x = cursor.x.round();
-            cursor.y = cursor.y.round();
         }
 
         glyphs

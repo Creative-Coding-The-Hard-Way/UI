@@ -75,13 +75,13 @@ impl Font {
         for (glyph_id, outline) in outlines {
             let bounds = outline.px_bounds();
             let texture_coords = Rect::new(
-                bounds.min.y.floor() / max_height as f32,
-                bounds.min.x.floor() / max_width as f32,
-                bounds.max.y.floor() / max_height as f32,
-                bounds.max.x.floor() / max_width as f32,
+                bounds.min.y.round() / max_height as f32,
+                bounds.min.x.round() / max_width as f32,
+                bounds.max.y.round() / max_height as f32,
+                bounds.max.x.round() / max_width as f32,
             );
-            let basex = bounds.min.x.floor() as u32;
-            let basey = bounds.min.y.floor() as u32;
+            let basex = bounds.min.x.round() as u32;
+            let basey = bounds.min.y.round() as u32;
             outline.draw(|x, y, coverage| {
                 rasterized_glyphs.write_pixel(
                     basex + x,

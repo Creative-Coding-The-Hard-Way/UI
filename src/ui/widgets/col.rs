@@ -8,27 +8,30 @@ use crate::{
         widgets::{Element, Widget},
         Input, InternalState,
     },
-    vec2, Vec2,
+    Vec2,
 };
 
-/// A Row is a collection of wigets which is arranged in a single horizontal
+/// A Col is a collection of wigets which is arranged in a single horizontal
 /// row.
-pub struct Row<Message> {
+pub struct Col<Message> {
     children: Vec<Element<Message>>,
     child_dimensions: Vec<Dimensions>,
     max_dimensions: Dimensions,
+    space_between: f32,
 }
 
-impl<Message> Row<Message> {
+impl<Message> Col<Message> {
     pub fn new() -> Self {
         Self {
             children: vec![],
             child_dimensions: vec![],
             max_dimensions: Dimensions::new(0.0, 0.0),
+            space_between: 0.0,
         }
     }
 
     builder_field!(children, Vec<Element<Message>>);
+    builder_field!(space_between, f32);
 
     /// Add a child element to the end of the row.
     pub fn child<W>(mut self, child: W) -> Self
@@ -40,7 +43,7 @@ impl<Message> Row<Message> {
     }
 }
 
-impl<Message> Widget<Message> for Row<Message> {
+impl<Message> Widget<Message> for Col<Message> {
     fn handle_event(
         &mut self,
         internal_state: &mut InternalState,
@@ -87,11 +90,13 @@ impl<Message> Widget<Message> for Row<Message> {
                 child.dimensions(internal_state, &remaining_size);
             self.child_dimensions.push(child_bounds);
 
-            bounds.width += child_bounds.width;
-            bounds.height = bounds.height.max(child_bounds.height);
+            bounds.height += child_bounds.height;
+            bounds.width = bounds.width.max(child_bounds.width);
 
-            remaining_size.width -= child_bounds.width;
+            remaining_size.height -= child_bounds.height + self.space_between;
         }
+        bounds.height +=
+            self.space_between * (self.children.len() - 1).max(0) as f32;
 
         self.max_dimensions = bounds.min(max_size);
         self.max_dimensions
@@ -106,20 +111,13 @@ impl<Message> Widget<Message> for Row<Message> {
         for (child, dimensions) in
             self.children.iter_mut().zip(self.child_dimensions.iter())
         {
-            let remaining_height =
-                self.max_dimensions.height - dimensions.height;
-
-            let child_position =
-                desired_position + vec2(0.0, 0.5 * remaining_height);
-
-            child.set_top_left_position(internal_state, child_position);
-
-            desired_position.x += dimensions.width;
+            child.set_top_left_position(internal_state, desired_position);
+            desired_position.y += dimensions.height + self.space_between;
         }
     }
 }
 
-impl<Message> Into<Element<Message>> for Row<Message>
+impl<Message> Into<Element<Message>> for Col<Message>
 where
     Message: 'static,
 {

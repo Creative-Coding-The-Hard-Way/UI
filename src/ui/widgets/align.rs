@@ -52,6 +52,15 @@ impl<Message, W: Widget<Message>> Align<Message, W> {
 
     builder_field!(horizontal_alignment, HAlignment);
     builder_field!(vertical_alignment, VAlignment);
+
+    pub fn alignment(
+        self,
+        horizontal: HAlignment,
+        vertical: VAlignment,
+    ) -> Self {
+        self.horizontal_alignment(horizontal)
+            .vertical_alignment(vertical)
+    }
 }
 
 impl<Message, W: Widget<Message>> Widget<Message> for Align<Message, W> {

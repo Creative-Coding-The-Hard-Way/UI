@@ -2,15 +2,7 @@ use ::{
     anyhow::Result,
     ccthw::{
         asset_loader::AssetLoader,
-        gen_id,
-        ui::{
-            widgets::{
-                Align, Button, Element, Label, Panel, Row, VAlignment,
-                WithPadding,
-            },
-            Font, UIState,
-        },
-        vec4,
+        ui::{widgets::prelude::*, UIState},
     },
 };
 
@@ -18,7 +10,7 @@ pub struct ExampleUi {
     em: f32,
     font: Font,
     is_fullscreen: bool,
-    count: i32,
+    pub count: i32,
 }
 
 impl ExampleUi {
@@ -39,6 +31,17 @@ impl ExampleUi {
             count: 0,
         })
     }
+
+    fn text_button(
+        &self,
+        text: &impl AsRef<str>,
+        on_click: ExampleMessage,
+    ) -> Element<ExampleMessage> {
+        text_button(&self.font, text)
+            .on_click(on_click)
+            .with_padding(0.25 * self.em)
+            .into()
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -52,49 +55,25 @@ impl UIState for ExampleUi {
     type Message = ExampleMessage;
 
     fn view(&self) -> Element<Self::Message> {
-        let message = if self.is_fullscreen { "-" } else { "+" };
-        let label =
-            Label::new(&self.font, message).with_padding(0.25 * self.em);
+        let message = if self.is_fullscreen {
+            "Windowed"
+        } else {
+            "Fullscreen"
+        };
 
-        let toggle_fullscreen_button = Button::new(gen_id!(), label)
-            .color(vec4(0.1, 0.1, 0.1, 1.0))
-            .hover_color(vec4(0.3, 0.3, 0.3, 1.0))
-            .pressed_color(vec4(0.5, 0.5, 0.5, 1.0))
-            .on_click(ExampleMessage::ToggleFullscreen)
-            .with_padding(1.0 * self.em);
+        let controls =
+            self.text_button(&message, ExampleMessage::ToggleFullscreen);
 
-        let plus_one_button = Button::new(
-            gen_id!(),
-            Label::new(&self.font, "+1").with_padding(0.25 * self.em),
-        )
-        .color(vec4(0.1, 0.1, 0.1, 1.0))
-        .hover_color(vec4(0.3, 0.3, 0.3, 1.0))
-        .pressed_color(vec4(0.5, 0.5, 0.5, 1.0))
-        .on_click(ExampleMessage::Increment)
-        .with_padding(1.0 * self.em);
+        let counter = row()
+            .child(self.text_button(&"-1", ExampleMessage::Decrement))
+            .child(label(&self.font, &format!("{}", self.count)))
+            .child(self.text_button(&"+1", ExampleMessage::Increment));
 
-        let minus_one_button = Button::new(
-            gen_id!(),
-            Label::new(&self.font, "-1").with_padding(0.25 * self.em),
-        )
-        .color(vec4(0.1, 0.1, 0.1, 1.0))
-        .hover_color(vec4(0.3, 0.3, 0.3, 1.0))
-        .pressed_color(vec4(0.5, 0.5, 0.5, 1.0))
-        .on_click(ExampleMessage::Decrement)
-        .with_padding(1.0 * self.em);
-
-        let row = Row::new()
-            .child(plus_one_button)
-            .child(
-                Label::new(&self.font, format!("{}", self.count))
-                    .with_padding(self.em),
+        hsplit()
+            .left(align(counter).alignment(HAlignment::Left, VAlignment::Top))
+            .right(
+                align(controls).alignment(HAlignment::Right, VAlignment::Top),
             )
-            .child(minus_one_button)
-            .child(toggle_fullscreen_button);
-
-        Align::new(Panel::new(row))
-            .vertical_alignment(ccthw::ui::widgets::VAlignment::Center)
-            .horizontal_alignment(ccthw::ui::widgets::HAlignment::Center)
             .into()
     }
 

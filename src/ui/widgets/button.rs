@@ -61,9 +61,9 @@ impl<Message> Button<Message> {
             id,
             child: child.into(),
             background: Rect::new(0.0, 0.0, 0.0, 0.0),
-            color: vec4(1.0, 1.0, 1.0, 1.0),
-            hover_color: vec4(1.0, 0.0, 0.0, 1.0),
-            pressed_color: vec4(0.0, 0.0, 0.0, 1.0),
+            color: vec4(0.1, 0.1, 0.1, 1.0),
+            hover_color: vec4(0.3, 0.3, 0.3, 1.0),
+            pressed_color: vec4(0.5, 0.5, 0.5, 1.0),
             on_click: None,
         }
     }
