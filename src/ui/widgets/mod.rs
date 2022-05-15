@@ -8,6 +8,7 @@ mod padding;
 mod panel;
 mod row;
 mod slider;
+mod window;
 
 pub mod prelude;
 
@@ -29,6 +30,7 @@ pub use self::{
     padding::{PaddedWidget, WithPadding},
     panel::Panel,
     row::Row,
+    window::Window,
 };
 
 /// Widgets are UI building blocks. Widgets ar responsible for handling system

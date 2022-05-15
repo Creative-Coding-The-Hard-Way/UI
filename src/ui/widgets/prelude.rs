@@ -4,7 +4,7 @@ pub use crate::{
         id::id_hash,
         widgets::{
             Align, Button, Col, Element, HAlignment, HSplit, Label,
-            PaddedWidget, Panel, Row, VAlignment, Widget, WithPadding,
+            PaddedWidget, Panel, Row, VAlignment, Widget, Window, WithPadding,
         },
         Font, Id,
     },

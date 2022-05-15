@@ -122,7 +122,7 @@ impl<Message, W: Widget<Message>> Widget<Message> for Align<Message, W> {
 
 impl<Message, W> Into<Element<Message>> for Align<Message, W>
 where
-    Message: 'static,
+    Message: 'static + std::fmt::Debug + Copy + Clone,
     W: Widget<Message> + 'static,
 {
     fn into(self) -> Element<Message> {

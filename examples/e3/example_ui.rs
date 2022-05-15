@@ -32,15 +32,12 @@ impl ExampleUi {
         })
     }
 
-    fn text_button(
+    pub fn text_button(
         &self,
-        text: &impl AsRef<str>,
+        message: impl AsRef<str>,
         on_click: ExampleMessage,
-    ) -> Element<ExampleMessage> {
-        text_button(&self.font, text)
-            .on_click(on_click)
-            .with_padding(0.25 * self.em)
-            .into()
+    ) -> impl Into<Element<ExampleMessage>> {
+        text_button(&self.font, &message).on_click(on_click)
     }
 }
 
@@ -55,24 +52,38 @@ impl UIState for ExampleUi {
     type Message = ExampleMessage;
 
     fn view(&self) -> Element<Self::Message> {
+        let em = self.em;
+
         let message = if self.is_fullscreen {
             "Windowed"
         } else {
             "Fullscreen"
         };
 
-        let controls =
-            self.text_button(&message, ExampleMessage::ToggleFullscreen);
+        let window = Window::new(
+            self.font.clone(),
+            "window controls",
+            col().child(
+                self.text_button(message, ExampleMessage::ToggleFullscreen),
+            ),
+        );
 
-        let counter = row()
-            .child(self.text_button(&"-1", ExampleMessage::Decrement))
-            .child(label(&self.font, &format!("{}", self.count)))
-            .child(self.text_button(&"+1", ExampleMessage::Increment));
+        let state = Window::new(
+            self.font.clone(),
+            "state controls",
+            row()
+                .child(self.text_button("-1", ExampleMessage::Decrement))
+                .child(
+                    label(&self.font, &format!("{}", self.count))
+                        .with_padding(1.0 * em),
+                )
+                .child(self.text_button("+1", ExampleMessage::Increment)),
+        );
 
         hsplit()
-            .left(align(counter).alignment(HAlignment::Left, VAlignment::Top))
             .right(
-                align(controls).alignment(HAlignment::Right, VAlignment::Top),
+                align(hsplit().left(window).right(state))
+                    .alignment(HAlignment::Right, VAlignment::Top),
             )
             .into()
     }

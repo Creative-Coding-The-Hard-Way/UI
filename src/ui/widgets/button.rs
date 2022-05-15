@@ -77,7 +77,7 @@ impl<Message> Button<Message> {
 
 impl<Message> Widget<Message> for Button<Message>
 where
-    Message: Copy,
+    Message: Copy + Clone + std::fmt::Debug,
 {
     /// Handle events for this widget.
     fn handle_event(
@@ -106,7 +106,6 @@ where
                 _,
             ) => {
                 if *state == ButtonState::Hover {
-                    log::info!("pressed");
                     *state = ButtonState::Pressed;
                 }
                 None
@@ -181,7 +180,7 @@ where
 
 impl<Message> Into<Element<Message>> for Button<Message>
 where
-    Message: 'static + Copy,
+    Message: 'static + Copy + Clone + std::fmt::Debug,
 {
     fn into(self) -> Element<Message> {
         Element::new(self)

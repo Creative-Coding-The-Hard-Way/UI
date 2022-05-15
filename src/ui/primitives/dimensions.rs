@@ -19,6 +19,12 @@ impl Dimensions {
         Self::new(self.width.min(other.width), self.height.min(other.height))
     }
 
+    /// Take the maximum values of the two dimensions.
+    #[inline]
+    pub fn max(&self, other: &Self) -> Self {
+        Self::new(self.width.max(other.width), self.height.max(other.height))
+    }
+
     /// Create a rect with top-left at (0, 0) and dimensions matching these
     /// dimensions.
     pub fn as_rect(&self) -> Rect {
