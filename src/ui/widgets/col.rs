@@ -8,13 +8,22 @@ use crate::{
         widgets::{Element, Widget},
         Input, InternalState,
     },
-    Vec2,
+    vec2, Vec2,
 };
+
+/// This type represents how column children are justified horizontally within
+/// the column.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum HJustify {
+    Left,
+    Right,
+    Center,
+}
 
 /// A Col is a collection of wigets which is arranged in a single horizontal
 /// row.
 pub struct Col<Message> {
-    children: Vec<Element<Message>>,
+    children: Vec<(Element<Message>, HJustify)>,
     child_dimensions: Vec<Dimensions>,
     max_dimensions: Dimensions,
     space_between: f32,
@@ -30,15 +39,15 @@ impl<Message> Col<Message> {
         }
     }
 
-    builder_field!(children, Vec<Element<Message>>);
+    builder_field!(children, Vec<(Element<Message>, HJustify)>);
     builder_field!(space_between, f32);
 
     /// Add a child element to the end of the row.
-    pub fn child<W>(mut self, child: W) -> Self
+    pub fn child<W>(mut self, child: W, justify: HJustify) -> Self
     where
         W: Into<Element<Message>>,
     {
-        self.children.push(child.into());
+        self.children.push((child.into(), justify));
         self
     }
 }
@@ -50,7 +59,7 @@ impl<Message> Widget<Message> for Col<Message> {
         input: &Input,
         event: &glfw::WindowEvent,
     ) -> Result<Option<Message>> {
-        for child in &mut self.children {
+        for (child, _) in &mut self.children {
             if let Some(message) =
                 child.handle_event(internal_state, input, event)?
             {
@@ -65,7 +74,7 @@ impl<Message> Widget<Message> for Col<Message> {
         internal_state: &mut InternalState,
         frame: &mut Frame,
     ) -> Result<()> {
-        for child in &self.children {
+        for (child, _) in &self.children {
             child.draw_frame(internal_state, frame)?;
         }
         Ok(())
@@ -85,7 +94,7 @@ impl<Message> Widget<Message> for Col<Message> {
 
         let mut remaining_size = *max_size;
         let mut bounds = Dimensions::new(0.0, 0.0);
-        for child in &mut self.children {
+        for (child, _) in &mut self.children {
             let child_bounds =
                 child.dimensions(internal_state, &remaining_size);
             self.child_dimensions.push(child_bounds);
@@ -108,10 +117,23 @@ impl<Message> Widget<Message> for Col<Message> {
         position: Vec2,
     ) {
         let mut desired_position = position;
-        for (child, dimensions) in
+        for ((child, justify), dimensions) in
             self.children.iter_mut().zip(self.child_dimensions.iter())
         {
-            child.set_top_left_position(internal_state, desired_position);
+            let offset = match *justify {
+                HJustify::Left => vec2(0.0, 0.0),
+                HJustify::Right => {
+                    vec2(self.max_dimensions.width - dimensions.width, 0.0)
+                }
+                HJustify::Center => vec2(
+                    0.5 * (self.max_dimensions.width - dimensions.width),
+                    0.0,
+                ),
+            };
+            child.set_top_left_position(
+                internal_state,
+                desired_position + offset,
+            );
             desired_position.y += dimensions.height + self.space_between;
         }
     }

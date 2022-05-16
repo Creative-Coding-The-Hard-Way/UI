@@ -22,7 +22,7 @@ use crate::{
 pub use self::{
     align::{Align, HAlignment, VAlignment},
     button::Button,
-    col::Col,
+    col::{Col, HJustify},
     composite::{ComposedElement, ComposedMessage, Composite, CompositeWidget},
     container::{Container, WithContainer},
     element::Element,

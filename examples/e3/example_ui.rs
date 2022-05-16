@@ -68,43 +68,29 @@ impl UIState for ExampleUi {
             "Fullscreen"
         };
 
+        let fullscreen_controls =
+            self.text_button(message, ExampleMessage::ToggleFullscreen);
+
+        let counter_controls = row()
+            .child(self.text_button("-2", ExampleMessage::Decrement))
+            .child(
+                label(&self.font, &format!("{}", self.border_width))
+                    .container()
+                    .padding(1.0 * em),
+            )
+            .child(self.text_button("+2", ExampleMessage::Increment));
+
         let window = Window::new(self.font.clone(), "window controls")
-            .contents(col().child(
-                self.text_button(message, ExampleMessage::ToggleFullscreen),
-            ))
-            .container()
-            .background(vec4(0.0, 0.0, 0.3, 0.1), 0);
-
-        let state = Window::new(self.font.clone(), "state controls")
             .contents(
-                row()
-                    .child(self.text_button("-2", ExampleMessage::Decrement))
-                    .child(
-                        label(&self.font, &format!("{}", self.border_width))
-                            .container()
-                            .padding(1.0 * em),
-                    )
-                    .child(self.text_button("+2", ExampleMessage::Increment)),
+                col()
+                    .child(fullscreen_controls, HJustify::Center)
+                    .child(counter_controls, HJustify::Center),
             )
             .container()
             .background(vec4(0.0, 0.0, 0.3, 0.1), 0);
 
-        hsplit()
-            .left(
-                align(
-                    label(&self.font, &"hello world!")
-                        .container()
-                        .border(0.125 * em, vec4(1.0, 1.0, 1.0, 1.0), 0)
-                        .padding(0.5 * em)
-                        .margin(1.0 * em)
-                        .background(vec4(0.2, 0.2, 0.5, 0.9), 0),
-                )
-                .alignment(HAlignment::Left, VAlignment::Bottom),
-            )
-            .right(
-                align(col().child(window).child(state).space_between(0.5 * em))
-                    .alignment(HAlignment::Right, VAlignment::Top),
-            )
+        align(window)
+            .alignment(HAlignment::Center, VAlignment::Top)
             .into()
     }
 

@@ -3,8 +3,8 @@ pub use crate::{
     ui::{
         id::id_hash,
         widgets::{
-            Align, Button, Col, Container, Element, HAlignment, HSplit, Label,
-            Row, VAlignment, Widget, Window, WithContainer,
+            Align, Button, Col, Container, Element, HAlignment, HJustify,
+            HSplit, Label, Row, VAlignment, Widget, Window, WithContainer,
         },
         Font, Id,
     },

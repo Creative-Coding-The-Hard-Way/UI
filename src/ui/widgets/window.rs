@@ -6,7 +6,7 @@ use crate::{
         id_hash,
         widgets::{
             Button, Col, ComposedMessage, Composite, CompositeWidget,
-            Container, Element, Label, WithContainer,
+            Container, Element, HJustify, Label, WithContainer,
         },
         Font, Id,
     },
@@ -110,11 +110,14 @@ where
             WindowState::Hidden => {
                 // render just the top bar
                 Col::new()
-                    .child(self.text_button(
-                        toggle_id,
-                        WindowEvent::ShowWindow,
-                        format!("[show] {}", self.title),
-                    ))
+                    .child(
+                        self.text_button(
+                            toggle_id,
+                            WindowEvent::ShowWindow,
+                            format!("[show] {}", self.title),
+                        ),
+                        HJustify::Left,
+                    )
                     .into()
             }
             WindowState::Visible => {
@@ -128,12 +131,15 @@ where
 
                 // render the visible part of the window
                 Col::new()
-                    .child(self.text_button(
-                        toggle_id,
-                        WindowEvent::HideWindow,
-                        format!("[hide] {}", self.title),
-                    ))
-                    .child(contents)
+                    .child(
+                        self.text_button(
+                            toggle_id,
+                            WindowEvent::HideWindow,
+                            format!("[hide] {}", self.title),
+                        ),
+                        HJustify::Left,
+                    )
+                    .child(contents, HJustify::Center)
                     .into()
             }
         }
