@@ -6,9 +6,13 @@ use ::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        immediate_mode_graphics::Frame,
+        immediate_mode_graphics::{Drawable, Frame},
         timing::FrameRateLimit,
-        ui::UI,
+        ui::{
+            primitives::{Rect, Tile},
+            UI,
+        },
+        vec4,
         vulkan::{MemoryAllocator, RenderDevice},
     },
     std::sync::Arc,
@@ -17,6 +21,7 @@ use ::{
 use example_ui::{ExampleMessage, ExampleUi};
 
 struct Example {
+    texture_index: i32,
     ui: UI<ExampleUi>,
 }
 
@@ -30,7 +35,9 @@ impl State for Example {
     ) -> Result<Self> {
         let scale = window.window.get_content_scale();
         fps_limit.set_target_fps(120);
+        let texture_index = asset_loader.read_texture("assets/border.png")?;
         Ok(Self {
+            texture_index,
             ui: UI::new(
                 window.window.get_framebuffer_size().into(),
                 ExampleUi::new(scale.0, asset_loader)?,
@@ -55,6 +62,21 @@ impl State for Example {
 
     fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
         self.ui.draw_frame(frame)?;
+
+        let tile = Tile {
+            model: Rect::centered_at(400.0, 400.0, 400.0, 100.0),
+            color: vec4(0.25, 0.25, 0.25, 1.0),
+            ..Default::default()
+        };
+        tile.fill(frame)?;
+
+        Tile {
+            color: vec4(0.0, 0.0, 0.0, 1.0),
+            outline_width: self.ui.state().border_width,
+            texture_index: self.texture_index,
+            ..tile
+        }
+        .outline(frame)?;
 
         Ok(())
     }

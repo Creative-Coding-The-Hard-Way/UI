@@ -60,6 +60,7 @@ impl<Message> Widget<Message> for Panel<Message> {
             ..Default::default()
         }
         .fill(frame)?;
+
         self.child.draw_frame(internal_state, frame)
     }
 

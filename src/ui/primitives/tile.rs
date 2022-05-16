@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use crate::{
     immediate_mode_graphics::{Drawable, Frame, Vertex},
-    ui::primitives::{Line, Rect},
+    ui::primitives::Rect,
     vec2, vec3, vec4, Vec4,
 };
 
@@ -29,10 +29,6 @@ pub struct Tile {
     /// Defaults to 1.0.
     pub outline_width: f32,
 
-    /// The texture to use when rendering the tile's outline.
-    /// Defaults to 0.
-    pub outline_texture_index: i32,
-
     /// The texture index to use when rendering the tile.
     /// Defaults to 0.
     pub texture_index: i32,
@@ -46,7 +42,6 @@ impl Default for Tile {
             depth: 0.0,
             color: vec4(1.0, 1.0, 1.0, 1.0),
             outline_width: 1.0,
-            outline_texture_index: 0,
             texture_index: 0,
         }
     }
@@ -89,49 +84,133 @@ impl Drawable for Tile {
     }
 
     fn outline(&self, frame: &mut Frame) -> Result<()> {
+        let outline_properties = Tile {
+            depth: self.depth,
+            color: self.color,
+            texture_index: self.texture_index,
+            ..Default::default()
+        };
+
         let top_left = self.model.top_left;
         let top_right = vec2(self.model.right(), self.model.top());
         let bottom_left = vec2(self.model.left(), self.model.bottom());
         let bottom_right = self.model.bottom_right;
-        let outline_properties = Line {
-            depth: self.depth,
-            color: self.color,
-            texture_index: self.outline_texture_index,
-            width: self.outline_width,
-            ..Default::default()
+
+        let half_width = 0.5 * self.outline_width;
+        let corner_top_left = Tile {
+            model: Rect::new(
+                top_left.y - half_width,
+                top_left.x - half_width,
+                top_left.y + half_width,
+                top_left.x + half_width,
+            ),
+            uv: Rect::new(0.0, 0.0, 0.2, 0.2),
+            ..outline_properties
+        };
+        let corner_top_right = Tile {
+            model: Rect::new(
+                top_right.y - half_width,
+                top_right.x - half_width,
+                top_right.y + half_width,
+                top_right.x + half_width,
+            ),
+            uv: Rect::new(0.0, 0.8, 0.2, 1.0),
+            ..outline_properties
+        };
+        let corner_bottom_left = Tile {
+            model: Rect::new(
+                bottom_left.y - half_width,
+                bottom_left.x - half_width,
+                bottom_left.y + half_width,
+                bottom_left.x + half_width,
+            ),
+            uv: Rect::new(0.8, 0.0, 1.0, 0.2),
+            ..outline_properties
+        };
+        let corner_bottom_right = Tile {
+            model: Rect::new(
+                bottom_right.y - half_width,
+                bottom_right.x - half_width,
+                bottom_right.y + half_width,
+                bottom_right.x + half_width,
+            ),
+            uv: Rect::new(0.8, 0.8, 1.0, 1.0),
+            ..outline_properties
         };
 
-        // draw the top
-        Line {
-            start: top_left,
-            end: top_right,
+        let top = Tile {
+            model: Rect::new(
+                corner_top_left.model.top(),
+                corner_top_left.model.right(),
+                corner_top_right.model.bottom(),
+                corner_top_right.model.left(),
+            ),
+            uv: Rect::new(
+                corner_top_left.uv.top(),
+                corner_top_left.uv.right(),
+                corner_top_right.uv.bottom(),
+                corner_top_right.uv.left(),
+            ),
             ..outline_properties
-        }
-        .fill(frame)?;
+        };
+        let bottom = Tile {
+            model: Rect::new(
+                corner_bottom_left.model.top(),
+                corner_bottom_left.model.right(),
+                corner_bottom_right.model.bottom(),
+                corner_bottom_right.model.left(),
+            ),
+            uv: Rect::new(
+                corner_bottom_left.uv.top(),
+                corner_bottom_left.uv.right(),
+                corner_bottom_right.uv.bottom(),
+                corner_bottom_right.uv.left(),
+            ),
+            ..outline_properties
+        };
+        let left = Tile {
+            model: Rect::new(
+                corner_top_left.model.bottom(),
+                corner_top_left.model.left(),
+                corner_bottom_left.model.top(),
+                corner_bottom_left.model.right(),
+            ),
+            uv: Rect::new(
+                corner_top_left.uv.bottom(),
+                corner_top_left.uv.left(),
+                corner_bottom_left.uv.top(),
+                corner_bottom_left.uv.right(),
+            ),
+            ..outline_properties
+        };
+        let right = Tile {
+            model: Rect::new(
+                corner_top_right.model.bottom(),
+                corner_top_right.model.left(),
+                corner_bottom_right.model.top(),
+                corner_bottom_right.model.right(),
+            ),
+            uv: Rect::new(
+                corner_top_right.uv.bottom(),
+                corner_top_right.uv.left(),
+                corner_bottom_right.uv.top(),
+                corner_bottom_right.uv.right(),
+            ),
+            ..outline_properties
+        };
 
-        // draw the bottom
-        Line {
-            start: bottom_left,
-            end: bottom_right,
-            ..outline_properties
-        }
-        .fill(frame)?;
+        top.fill(frame)?;
+        bottom.fill(frame)?;
+        left.fill(frame)?;
+        right.fill(frame)?;
 
-        // draw the left
-        Line {
-            start: top_left,
-            end: bottom_left,
-            ..outline_properties
-        }
-        .fill(frame)?;
-
-        // draw the right
-        Line {
-            start: top_right,
-            end: bottom_right,
-            ..outline_properties
-        }
-        .fill(frame)?;
+        // Each corner renders as it's own little quad to ensure the UV coords
+        // are correct and that the corner texture isn't distorted when the
+        // Model is out of square.
+        corner_top_left.fill(frame)?;
+        corner_top_right.fill(frame)?;
+        corner_bottom_left.fill(frame)?;
+        corner_bottom_right.fill(frame)?;
 
         Ok(())
     }

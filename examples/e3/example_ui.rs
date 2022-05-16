@@ -10,7 +10,7 @@ pub struct ExampleUi {
     em: f32,
     font: Font,
     is_fullscreen: bool,
-    pub count: i32,
+    pub border_width: f32,
 }
 
 impl ExampleUi {
@@ -28,7 +28,7 @@ impl ExampleUi {
             em,
             font,
             is_fullscreen: false,
-            count: 0,
+            border_width: 1.0,
         })
     }
 
@@ -67,17 +67,17 @@ impl UIState for ExampleUi {
 
         let state = Window::new(self.font.clone(), "state controls").contents(
             row()
-                .child(self.text_button("-1", ExampleMessage::Decrement))
+                .child(self.text_button("-2", ExampleMessage::Decrement))
                 .child(
-                    label(&self.font, &format!("{}", self.count))
+                    label(&self.font, &format!("{}", self.border_width))
                         .with_padding(1.0 * em),
                 )
-                .child(self.text_button("+1", ExampleMessage::Increment)),
+                .child(self.text_button("+2", ExampleMessage::Increment)),
         );
 
         hsplit()
             .right(
-                align(hsplit().left(window).right(state))
+                align(col().child(window).child(state))
                     .alignment(HAlignment::Right, VAlignment::Top),
             )
             .into()
@@ -89,10 +89,10 @@ impl UIState for ExampleUi {
                 self.is_fullscreen = !self.is_fullscreen;
             }
             ExampleMessage::Increment => {
-                self.count += 1;
+                self.border_width += 2.0;
             }
             ExampleMessage::Decrement => {
-                self.count -= 1;
+                self.border_width -= 2.0;
             }
         }
     }
