@@ -60,17 +60,12 @@ impl UIState for ExampleUi {
             "Fullscreen"
         };
 
-        let window = Window::new(
-            self.font.clone(),
-            "window controls",
-            col().child(
+        let window = Window::new(self.font.clone(), "window controls")
+            .contents(col().child(
                 self.text_button(message, ExampleMessage::ToggleFullscreen),
-            ),
-        );
+            ));
 
-        let state = Window::new(
-            self.font.clone(),
-            "state controls",
+        let state = Window::new(self.font.clone(), "state controls").contents(
             row()
                 .child(self.text_button("-1", ExampleMessage::Decrement))
                 .child(
