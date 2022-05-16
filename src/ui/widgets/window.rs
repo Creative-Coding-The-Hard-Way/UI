@@ -69,6 +69,14 @@ where
 
     builder_field!(background_color, Vec4);
 
+    /// Turn this window into a generic Element widget.
+    /// This can be useful when trying to wrap Window with a type that cannot
+    /// automatically turn the widget into an Element. (for example, a
+    /// Container)
+    pub fn into_element(self) -> Element<Message> {
+        self.into()
+    }
+
     /// Generate a button with a text label.
     fn text_button<T>(
         &self,

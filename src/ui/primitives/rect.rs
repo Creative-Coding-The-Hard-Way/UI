@@ -80,6 +80,13 @@ impl Rect {
         }
     }
 
+    /// Translate this rect such that it's top left corner is at the given
+    /// position. The dimensions are unchanged.
+    pub fn set_top_left_position(&self, position: Vec2) -> Self {
+        let offset = position - self.top_left;
+        self.translate(offset)
+    }
+
     /// Returns true if the given point is inside the current rectangular
     /// region.
     pub fn contains(&self, point: Vec2) -> bool {

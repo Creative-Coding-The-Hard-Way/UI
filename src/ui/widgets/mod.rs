@@ -2,6 +2,7 @@ mod align;
 mod button;
 mod col;
 mod composite;
+mod container;
 mod element;
 mod hsplit;
 mod label;
@@ -26,6 +27,7 @@ pub use self::{
     button::Button,
     col::Col,
     composite::{ComposedElement, ComposedMessage, Composite, CompositeWidget},
+    container::{Container, WithContainer},
     element::Element,
     hsplit::HSplit,
     label::Label,

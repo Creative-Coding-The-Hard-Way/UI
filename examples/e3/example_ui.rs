@@ -3,6 +3,7 @@ use ::{
     ccthw::{
         asset_loader::AssetLoader,
         ui::{widgets::prelude::*, UIState},
+        vec4,
     },
 };
 
@@ -65,17 +66,34 @@ impl UIState for ExampleUi {
                 self.text_button(message, ExampleMessage::ToggleFullscreen),
             ));
 
-        let state = Window::new(self.font.clone(), "state controls").contents(
-            row()
-                .child(self.text_button("-2", ExampleMessage::Decrement))
-                .child(
-                    label(&self.font, &format!("{}", self.border_width))
-                        .with_padding(1.0 * em),
-                )
-                .child(self.text_button("+2", ExampleMessage::Increment)),
-        );
+        let state = Window::new(self.font.clone(), "state controls")
+            .contents(
+                row()
+                    .child(self.text_button("-2", ExampleMessage::Decrement))
+                    .child(
+                        label(&self.font, &format!("{}", self.border_width))
+                            .with_padding(1.0 * em),
+                    )
+                    .child(self.text_button("+2", ExampleMessage::Increment)),
+            )
+            .into_element()
+            .container()
+            .padding(0.2 * em)
+            .border(0.2 * em, vec4(0.0, 0.0, 0.1, 1.0), 0)
+            .background(vec4(0.0, 0.0, 0.1, 1.0), 0);
 
         hsplit()
+            .left(
+                align(
+                    label(&self.font, &"hello world!")
+                        .container()
+                        .border(0.125 * em, vec4(1.0, 1.0, 1.0, 1.0), 0)
+                        .padding(0.5 * em)
+                        .margin(1.0 * em)
+                        .background(vec4(0.2, 0.2, 0.5, 0.9), 0),
+                )
+                .alignment(HAlignment::Left, VAlignment::Bottom),
+            )
             .right(
                 align(col().child(window).child(state))
                     .alignment(HAlignment::Right, VAlignment::Top),
