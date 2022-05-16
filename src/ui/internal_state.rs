@@ -75,7 +75,7 @@ impl InternalState {
         };
 
         if needs_insert {
-            log::info!("Creating new state for {:?}", id);
+            log::trace!("Creating new state for {:?}", id);
             self.widget_states.insert(*id, Box::new(S::default()));
         }
     }

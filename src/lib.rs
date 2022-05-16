@@ -32,6 +32,7 @@ pub fn vec4(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
     Vec4::new(x, y, z, w)
 }
 
+#[allow(unused)]
 macro_rules! builder_field {
     ($field:ident, $field_type:ty) => {
         pub fn $field(self, $field: $field_type) -> Self {
@@ -40,6 +41,7 @@ macro_rules! builder_field {
     };
 }
 
+#[allow(unused)]
 macro_rules! builder_field_into {
     ($field:ident, $field_type:ty) => {
         pub fn $field<T>(self, $field: T) -> Self
@@ -54,6 +56,7 @@ macro_rules! builder_field_into {
     };
 }
 
+#[allow(unused)]
 macro_rules! builder_field_some {
     ($field:ident, $field_type:ty) => {
         pub fn $field(self, $field: $field_type) -> Self {
@@ -65,4 +68,5 @@ macro_rules! builder_field_some {
     };
 }
 
+#[allow(unused)]
 pub(crate) use {builder_field, builder_field_into, builder_field_some};

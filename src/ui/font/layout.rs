@@ -1,4 +1,4 @@
-use ::ab_glyph::{Font as AbFont, FontArc, Glyph, PxScaleFont, ScaleFont};
+use ::ab_glyph::{FontArc, Glyph, PxScaleFont, ScaleFont};
 
 use crate::ui::Font;
 

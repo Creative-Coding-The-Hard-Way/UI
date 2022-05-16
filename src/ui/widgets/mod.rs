@@ -9,7 +9,6 @@ mod label;
 mod padding;
 mod panel;
 mod row;
-mod slider;
 mod window;
 
 pub mod prelude;
