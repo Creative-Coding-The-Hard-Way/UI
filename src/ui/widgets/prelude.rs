@@ -4,8 +4,7 @@ pub use crate::{
         id::id_hash,
         widgets::{
             Align, Button, Col, Container, Element, HAlignment, HSplit, Label,
-            PaddedWidget, Panel, Row, VAlignment, Widget, Window,
-            WithContainer, WithPadding,
+            Row, VAlignment, Widget, Window, WithContainer,
         },
         Font, Id,
     },
@@ -36,7 +35,9 @@ where
     let id = gen_id!(text.as_ref());
     Button::new(
         id,
-        label(font, text).with_padding(font.line_height() * 0.25),
+        label(font, text)
+            .container()
+            .padding(font.line_height() * 0.25),
     )
 }
 
@@ -46,11 +47,6 @@ where
     T: AsRef<str>,
 {
     Label::new(font, text)
-}
-
-/// Give a widget a background panel.
-pub fn panel<Message>(widget: impl Into<Element<Message>>) -> Panel<Message> {
-    Panel::new(widget)
 }
 
 /// Create a column of widgets.

@@ -6,8 +6,6 @@ mod container;
 mod element;
 mod hsplit;
 mod label;
-mod padding;
-mod panel;
 mod row;
 mod window;
 
@@ -30,8 +28,6 @@ pub use self::{
     element::Element,
     hsplit::HSplit,
     label::Label,
-    padding::{PaddedWidget, WithPadding},
-    panel::Panel,
     row::Row,
     window::Window,
 };

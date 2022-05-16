@@ -1,16 +1,16 @@
 use ::anyhow::Result;
 
 use crate::{
-    builder_field, gen_id,
+    gen_id,
     ui::{
         id_hash,
         widgets::{
-            Button, Col, ComposedMessage, Composite, CompositeWidget, Element,
-            Label, Panel, WithPadding,
+            Button, Col, ComposedMessage, Composite, CompositeWidget,
+            Container, Element, Label, WithContainer,
         },
         Font, Id,
     },
-    vec4, Vec4,
+    vec4,
 };
 
 /// This type represents the ['Window']'s current visibity state.
@@ -41,7 +41,6 @@ pub struct Window<Message> {
     id: Id,
     font: Font,
     title: String,
-    background_color: Vec4,
     contents: Option<Element<Message>>,
 }
 
@@ -55,7 +54,6 @@ where
             id: gen_id!(&owned_title),
             font,
             title: owned_title,
-            background_color: vec4(0.0, 0.0, 0.0, 0.0),
             contents: None,
         }
     }
@@ -65,16 +63,6 @@ where
             contents: Some(contents.into()),
             ..self
         }
-    }
-
-    builder_field!(background_color, Vec4);
-
-    /// Turn this window into a generic Element widget.
-    /// This can be useful when trying to wrap Window with a type that cannot
-    /// automatically turn the widget into an Element. (for example, a
-    /// Container)
-    pub fn into_element(self) -> Element<Message> {
-        self.into()
     }
 
     /// Generate a button with a text label.
@@ -88,8 +76,13 @@ where
         T: AsRef<str>,
     {
         let label = Label::new(&self.font, &text)
-            .with_padding(self.font.line_height() * 0.125);
-        Button::new(id, label).on_click(ComposedMessage::Internal(on_click))
+            .container()
+            .padding(self.font.line_height() * 0.125);
+        Button::new(id, label)
+            .on_click(ComposedMessage::Internal(on_click))
+            .color(vec4(0.0, 0.0, 0.0, 0.2))
+            .hover_color(vec4(1.0, 1.0, 1.0, 0.2))
+            .pressed_color(vec4(1.0, 1.0, 1.0, 0.5))
     }
 }
 
@@ -113,38 +106,37 @@ where
         // mouse to re-trigger the hover state on the new button.
         let toggle_id = gen_id!(&format!("{} button", self.title));
 
-        let contents: Element<ComposedMessage<WindowEvent, Message>> =
-            match state {
-                WindowState::Hidden => {
-                    // render just the top bar
-                    Col::new()
-                        .child(self.text_button(
-                            toggle_id,
-                            WindowEvent::ShowWindow,
-                            format!("{} [show]", self.title),
-                        ))
-                        .into()
-                }
-                WindowState::Visible => {
-                    let contents: Element<Message> = self
-                        .contents
-                        .take()
-                        .unwrap()
-                        .with_padding(self.font.line_height() * 0.5)
-                        .into();
+        match state {
+            WindowState::Hidden => {
+                // render just the top bar
+                Col::new()
+                    .child(self.text_button(
+                        toggle_id,
+                        WindowEvent::ShowWindow,
+                        format!("[show] {}", self.title),
+                    ))
+                    .into()
+            }
+            WindowState::Visible => {
+                let contents: Element<Message> = self
+                    .contents
+                    .take()
+                    .unwrap()
+                    .container()
+                    .padding(self.font.line_height() * 0.5)
+                    .into();
 
-                    // render the visible part of the window
-                    Col::new()
-                        .child(self.text_button(
-                            toggle_id,
-                            WindowEvent::HideWindow,
-                            format!("{} [hide]", self.title),
-                        ))
-                        .child(contents)
-                        .into()
-                }
-            };
-        Panel::new(contents).color(self.background_color).into()
+                // render the visible part of the window
+                Col::new()
+                    .child(self.text_button(
+                        toggle_id,
+                        WindowEvent::HideWindow,
+                        format!("[hide] {}", self.title),
+                    ))
+                    .child(contents)
+                    .into()
+            }
+        }
     }
 
     fn update(
@@ -164,16 +156,13 @@ where
     }
 }
 
-impl<Message> WithPadding<Message, Element<Message>> for Window<Message>
+impl<Message> WithContainer<Message, Element<Message>> for Window<Message>
 where
     Message: 'static + std::fmt::Debug + Copy + Clone,
 {
-    fn with_padding(
-        self,
-        padding: f32,
-    ) -> super::PaddedWidget<Message, Element<Message>> {
-        let result = Into::<Element<Message>>::into(self);
-        result.with_padding(padding)
+    fn container(self) -> Container<Message, Element<Message>> {
+        let result: Element<Message> = self.into();
+        result.container()
     }
 }
 
