@@ -41,7 +41,6 @@ impl<Message, Widget> Container<Message, Widget> {
             },
 
             child: widget,
-
             _phantom_data: Default::default(),
         }
     }

@@ -20,13 +20,28 @@ pub enum HJustify {
     Center,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum VSpaceBetween {
+    /// Put a fixed amount of space.
+    Fixed(f32),
+
+    /// Add space between elements such that they're evenly spaced.
+    /// This will make the first and last elements touch the edge of the
+    /// available space.
+    SpaceBetween,
+
+    /// Add space around elements such that thei're evenly spaced.
+    /// This will put even space around teh first and last elements.
+    SpaceAround,
+}
+
 /// A Col is a collection of wigets which is arranged in a single horizontal
 /// row.
 pub struct Col<Message> {
     children: Vec<(Element<Message>, HJustify)>,
     child_dimensions: Vec<Dimensions>,
     max_dimensions: Dimensions,
-    space_between: f32,
+    space_between: VSpaceBetween,
 }
 
 impl<Message> Col<Message> {
@@ -35,12 +50,12 @@ impl<Message> Col<Message> {
             children: vec![],
             child_dimensions: vec![],
             max_dimensions: Dimensions::new(0.0, 0.0),
-            space_between: 0.0,
+            space_between: VSpaceBetween::Fixed(0.0),
         }
     }
 
     builder_field!(children, Vec<(Element<Message>, HJustify)>);
-    builder_field!(space_between, f32);
+    builder_field!(space_between, VSpaceBetween);
 
     /// Add a child element to the end of the row.
     pub fn child<W>(mut self, child: W, justify: HJustify) -> Self
@@ -92,7 +107,16 @@ impl<Message> Widget<Message> for Col<Message> {
         self.child_dimensions.clear();
         self.child_dimensions.reserve(self.children.len());
 
+        let fixed_padding =
+            if let VSpaceBetween::Fixed(size) = self.space_between {
+                size * (self.children.len() - 1).max(0) as f32
+            } else {
+                0.0
+            };
+
         let mut remaining_size = *max_size;
+        remaining_size.height -= fixed_padding;
+
         let mut bounds = Dimensions::new(0.0, 0.0);
         for (child, _) in &mut self.children {
             let child_bounds =
@@ -102,12 +126,22 @@ impl<Message> Widget<Message> for Col<Message> {
             bounds.height += child_bounds.height;
             bounds.width = bounds.width.max(child_bounds.width);
 
-            remaining_size.height -= child_bounds.height + self.space_between;
+            remaining_size.height -= child_bounds.height;
         }
-        bounds.height +=
-            self.space_between * (self.children.len() - 1).max(0) as f32;
+        bounds.height += fixed_padding;
 
-        self.max_dimensions = bounds.min(max_size);
+        match self.space_between {
+            VSpaceBetween::Fixed(_) => {
+                self.max_dimensions = bounds.min(max_size)
+            }
+            _ => {
+                self.max_dimensions = Dimensions::new(
+                    bounds.width.min(max_size.width),
+                    max_size.height,
+                )
+            }
+        }
+
         self.max_dimensions
     }
 
@@ -116,7 +150,36 @@ impl<Message> Widget<Message> for Col<Message> {
         internal_state: &mut InternalState,
         position: Vec2,
     ) {
+        let vertical_spacing = match self.space_between {
+            VSpaceBetween::Fixed(size) => size,
+            VSpaceBetween::SpaceBetween => {
+                let child_height = self
+                    .child_dimensions
+                    .iter()
+                    .fold(0.0, |total_height, dimensions| {
+                        total_height + dimensions.height
+                    });
+                let remaining_size = self.max_dimensions.height - child_height;
+                remaining_size / (self.children.len() - 1).max(1) as f32
+            }
+            VSpaceBetween::SpaceAround => {
+                let child_height = self
+                    .child_dimensions
+                    .iter()
+                    .fold(0.0, |total_height, dimensions| {
+                        total_height + dimensions.height
+                    });
+                let remaining_size = self.max_dimensions.height - child_height;
+                remaining_size / (self.children.len() + 1) as f32
+            }
+        };
+
         let mut desired_position = position;
+
+        if VSpaceBetween::SpaceAround == self.space_between {
+            desired_position.y += vertical_spacing;
+        }
+
         for ((child, justify), dimensions) in
             self.children.iter_mut().zip(self.child_dimensions.iter())
         {
@@ -134,7 +197,7 @@ impl<Message> Widget<Message> for Col<Message> {
                 internal_state,
                 desired_position + offset,
             );
-            desired_position.y += dimensions.height + self.space_between;
+            desired_position.y += dimensions.height + vertical_spacing;
         }
     }
 }

@@ -84,7 +84,8 @@ impl UIState for ExampleUi {
             .contents(
                 col()
                     .child(fullscreen_controls, HJustify::Center)
-                    .child(counter_controls, HJustify::Center),
+                    .child(counter_controls, HJustify::Center)
+                    .space_between(VSpaceBetween::Fixed(self.em)),
             )
             .container()
             .background(vec4(0.0, 0.0, 0.3, 0.1), 0);
