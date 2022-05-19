@@ -4,7 +4,7 @@ use crate::{
     builder_field,
     immediate_mode_graphics::Frame,
     ui::{
-        primitives::Dimensions,
+        primitives::{Axis, DimensionList, Dimensions, Justify, SpaceBetween},
         widgets::{Element, Widget},
         Input, InternalState,
     },
