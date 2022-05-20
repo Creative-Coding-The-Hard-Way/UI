@@ -5,7 +5,7 @@ use crate::ui::Font;
 impl Font {
     pub(super) fn layout_text<T>(
         font: &PxScaleFont<FontArc>,
-        content: &T,
+        content: T,
     ) -> Vec<Glyph>
     where
         T: AsRef<str>,

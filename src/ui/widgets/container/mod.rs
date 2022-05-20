@@ -1,6 +1,9 @@
+mod constraint;
+
 use ::anyhow::Result;
 
 use crate::{
+    builder_field,
     immediate_mode_graphics::{Drawable, Frame},
     ui::{
         primitives::{Dimensions, Rect, Tile},
@@ -10,6 +13,8 @@ use crate::{
     vec2, vec4, Vec2, Vec4,
 };
 
+pub use self::constraint::Constraint;
+
 /// A generic container for another [`Widget`]. Containers have margin, padding,
 /// and a border akin to the standard CSS box model.
 pub struct Container<Message, Widget> {
@@ -17,6 +22,8 @@ pub struct Container<Message, Widget> {
     padding: Rect,
     border: Option<Tile>,
     background: Tile,
+    max_width: Constraint,
+    max_height: Constraint,
 
     /// The Widget contained by this container
     pub child: Widget,
@@ -25,6 +32,7 @@ pub struct Container<Message, Widget> {
 }
 
 impl<Message, Widget> Container<Message, Widget> {
+    /// Create a new Container to decorate another widget.
     pub fn new(widget: Widget) -> Self {
         Self {
             ///! Margin and Padding default to 0.0
@@ -40,10 +48,16 @@ impl<Message, Widget> Container<Message, Widget> {
                 ..Default::default()
             },
 
+            max_width: Default::default(),
+            max_height: Default::default(),
+
             child: widget,
             _phantom_data: Default::default(),
         }
     }
+
+    builder_field!(max_width, Constraint);
+    builder_field!(max_height, Constraint);
 
     /// Set the margin on all sides.
     pub fn margin(self, margin: f32) -> Self {
@@ -124,6 +138,10 @@ where
         internal_state: &mut InternalState,
         max_size: &Dimensions,
     ) -> Dimensions {
+        let adjusted_max_size = Dimensions::new(
+            self.max_width.apply(max_size.width),
+            self.max_height.apply(max_size.height),
+        );
         let border_width = self.get_border_width();
         let horizonal_inset = self.padding.left()
             + self.padding.right()
@@ -136,8 +154,8 @@ where
             + self.margin.bottom()
             + border_width * 2.0;
         let max_child_dimensions = Dimensions::new(
-            0f32.max(max_size.width - horizonal_inset),
-            0f32.max(max_size.height - vertical_inset),
+            0f32.max(adjusted_max_size.width - horizonal_inset),
+            0f32.max(adjusted_max_size.height - vertical_inset),
         );
         let child_dimensions =
             self.child.dimensions(internal_state, &max_child_dimensions);
@@ -162,7 +180,7 @@ where
             child_dimensions.width + horizonal_inset,
             child_dimensions.height + vertical_inset,
         );
-        total_dimensions.min(max_size)
+        total_dimensions.min(&adjusted_max_size)
     }
 
     fn set_top_left_position(

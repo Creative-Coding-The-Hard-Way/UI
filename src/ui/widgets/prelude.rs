@@ -4,8 +4,8 @@ pub use crate::{
         id::id_hash,
         primitives::{Axis, Justify, SpaceBetween},
         widgets::{
-            Align, Button, Col, Container, Element, HAlignment, HSplit, Label,
-            Row, VAlignment, Widget, Window, WithContainer,
+            Align, Button, Col, Constraint, Container, Element, HAlignment,
+            HSplit, Label, Row, VAlignment, Widget, Window, WithContainer,
         },
         Font, Id,
     },
@@ -43,7 +43,7 @@ where
 }
 
 /// Create a text label.
-pub fn label<T>(font: &Font, text: &T) -> Label
+pub fn label<T>(font: &Font, text: T) -> Label
 where
     T: AsRef<str>,
 {

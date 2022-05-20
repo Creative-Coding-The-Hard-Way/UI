@@ -76,7 +76,7 @@ where
     where
         T: AsRef<str>,
     {
-        let label = Label::new(&self.font, &text)
+        let label = Label::new(&self.font, text)
             .container()
             .padding(self.font.line_height() * 0.125);
         Button::new(id, label)
@@ -117,7 +117,7 @@ where
                             WindowEvent::ShowWindow,
                             format!("[show] {}", self.title),
                         ),
-                        Justify::Begin,
+                        Justify::End,
                     )
                     .into()
             }
@@ -138,7 +138,7 @@ where
                             WindowEvent::HideWindow,
                             format!("[hide] {}", self.title),
                         ),
-                        Justify::Begin,
+                        Justify::End,
                     )
                     .child(contents, Justify::Center)
                     .into()

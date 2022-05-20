@@ -17,7 +17,7 @@ pub struct Label {
 
 impl Label {
     /// Create a new label using the provided font.
-    pub fn new<T>(font: &Font, content: &T) -> Self
+    pub fn new<T>(font: &Font, content: T) -> Self
     where
         T: AsRef<str>,
     {

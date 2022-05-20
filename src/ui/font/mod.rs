@@ -108,11 +108,11 @@ impl Font {
     ///    consistent arrangement regardless of which glyphs are being
     ///    rendered.
     ///
-    pub fn build_text_tiles<T>(&self, content: &T) -> (Vec<Tile>, Rect)
+    pub fn build_text_tiles<T>(&self, content: T) -> (Vec<Tile>, Rect)
     where
         T: AsRef<str>,
     {
-        let glyphs = Self::layout_text(&self.font, &content);
+        let glyphs = Self::layout_text(&self.font, content);
         let mut tiles = Vec::with_capacity(glyphs.len());
         let mut total_bounds: Option<Rect> = None;
 

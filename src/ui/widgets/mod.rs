@@ -24,7 +24,7 @@ pub use self::{
     button::Button,
     col::Col,
     composite::{ComposedElement, ComposedMessage, Composite, CompositeWidget},
-    container::{Container, WithContainer},
+    container::{Constraint, Container, WithContainer},
     element::Element,
     hsplit::HSplit,
     label::Label,
