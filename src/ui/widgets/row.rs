@@ -1,41 +1,45 @@
 use ::anyhow::Result;
 
 use crate::{
-    builder_field,
     immediate_mode_graphics::Frame,
     ui::{
-        primitives::Dimensions,
+        primitives::{DimensionList, Dimensions, Justify, SpaceBetween},
         widgets::{Element, Widget},
         Input, InternalState,
     },
-    vec2, Vec2,
+    Vec2,
 };
 
 /// A Row is a collection of wigets which is arranged in a single horizontal
 /// row.
 pub struct Row<Message> {
-    children: Vec<Element<Message>>,
-    child_dimensions: Vec<Dimensions>,
-    max_dimensions: Dimensions,
+    children: Vec<(Element<Message>, Justify)>,
+    child_dimensions: DimensionList,
 }
 
 impl<Message> Row<Message> {
     pub fn new() -> Self {
         Self {
             children: vec![],
-            child_dimensions: vec![],
-            max_dimensions: Dimensions::new(0.0, 0.0),
+            child_dimensions: DimensionList::horizontal(),
         }
     }
 
-    builder_field!(children, Vec<Element<Message>>);
+    pub fn space_between(self, space_between: SpaceBetween) -> Self {
+        Self {
+            child_dimensions: self
+                .child_dimensions
+                .space_between(space_between),
+            ..self
+        }
+    }
 
     /// Add a child element to the end of the row.
-    pub fn child<W>(mut self, child: W) -> Self
+    pub fn child<W>(mut self, child: W, justify: Justify) -> Self
     where
         W: Into<Element<Message>>,
     {
-        self.children.push(child.into());
+        self.children.push((child.into(), justify));
         self
     }
 }
@@ -47,7 +51,7 @@ impl<Message> Widget<Message> for Row<Message> {
         input: &Input,
         event: &glfw::WindowEvent,
     ) -> Result<Option<Message>> {
-        for child in &mut self.children {
+        for (child, _) in &mut self.children {
             if let Some(message) =
                 child.handle_event(internal_state, input, event)?
             {
@@ -62,7 +66,7 @@ impl<Message> Widget<Message> for Row<Message> {
         internal_state: &mut InternalState,
         frame: &mut Frame,
     ) -> Result<()> {
-        for child in &self.children {
+        for (child, _) in &self.children {
             child.draw_frame(internal_state, frame)?;
         }
         Ok(())
@@ -77,24 +81,20 @@ impl<Message> Widget<Message> for Row<Message> {
             return Dimensions::new(0.0, 0.0);
         }
 
-        self.child_dimensions.clear();
-        self.child_dimensions.reserve(self.children.len());
+        self.child_dimensions.set_max_size(max_size);
 
         let mut remaining_size = *max_size;
-        let mut bounds = Dimensions::new(0.0, 0.0);
-        for child in &mut self.children {
+
+        for (child, justify) in &mut self.children {
             let child_bounds =
                 child.dimensions(internal_state, &remaining_size);
-            self.child_dimensions.push(child_bounds);
 
-            bounds.width += child_bounds.width;
-            bounds.height = bounds.height.max(child_bounds.height);
-
-            remaining_size.width -= child_bounds.width;
+            remaining_size = self
+                .child_dimensions
+                .add_child_dimensions(child_bounds, *justify);
         }
 
-        self.max_dimensions = bounds.min(max_size);
-        self.max_dimensions
+        self.child_dimensions.dimensions()
     }
 
     fn set_top_left_position(
@@ -102,19 +102,11 @@ impl<Message> Widget<Message> for Row<Message> {
         internal_state: &mut InternalState,
         position: Vec2,
     ) {
-        let mut desired_position = position;
-        for (child, dimensions) in
-            self.children.iter_mut().zip(self.child_dimensions.iter())
+        let positions = self.child_dimensions.compute_child_positions();
+        for ((child, _), child_pos) in
+            self.children.iter_mut().zip(positions.iter())
         {
-            let remaining_height =
-                self.max_dimensions.height - dimensions.height;
-
-            let child_position =
-                desired_position + vec2(0.0, 0.5 * remaining_height);
-
-            child.set_top_left_position(internal_state, child_position);
-
-            desired_position.x += dimensions.width;
+            child.set_top_left_position(internal_state, position + child_pos);
         }
     }
 }

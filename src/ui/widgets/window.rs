@@ -4,9 +4,10 @@ use crate::{
     gen_id,
     ui::{
         id_hash,
+        primitives::Justify,
         widgets::{
             Button, Col, ComposedMessage, Composite, CompositeWidget,
-            Container, Element, HJustify, Label, WithContainer,
+            Container, Element, Label, WithContainer,
         },
         Font, Id,
     },
@@ -116,7 +117,7 @@ where
                             WindowEvent::ShowWindow,
                             format!("[show] {}", self.title),
                         ),
-                        HJustify::Left,
+                        Justify::Begin,
                     )
                     .into()
             }
@@ -137,9 +138,9 @@ where
                             WindowEvent::HideWindow,
                             format!("[hide] {}", self.title),
                         ),
-                        HJustify::Left,
+                        Justify::Begin,
                     )
-                    .child(contents, HJustify::Center)
+                    .child(contents, Justify::Center)
                     .into()
             }
         }

@@ -72,26 +72,35 @@ impl UIState for ExampleUi {
             self.text_button(message, ExampleMessage::ToggleFullscreen);
 
         let counter_controls = row()
-            .child(self.text_button("-2", ExampleMessage::Decrement))
+            .child(
+                self.text_button("-2", ExampleMessage::Decrement),
+                Justify::Center,
+            )
             .child(
                 label(&self.font, &format!("{}", self.border_width))
                     .container()
                     .padding(1.0 * em),
+                Justify::Center,
             )
-            .child(self.text_button("+2", ExampleMessage::Increment));
+            .child(
+                self.text_button("+2", ExampleMessage::Increment),
+                Justify::Center,
+            )
+            .space_between(SpaceBetween::Fixed(0.25 * em));
 
         let window = Window::new(self.font.clone(), "window controls")
             .contents(
                 col()
-                    .child(fullscreen_controls, HJustify::Center)
-                    .child(counter_controls, HJustify::Center)
-                    .space_between(VSpaceBetween::Fixed(self.em)),
+                    .child(fullscreen_controls, Justify::Center)
+                    .child(label(&self.font, &"hello world"), Justify::Center)
+                    .child(counter_controls, Justify::Center)
+                    .space_between(SpaceBetween::Fixed(1.0 * em)),
             )
             .container()
             .background(vec4(0.0, 0.0, 0.3, 0.1), 0);
 
         align(window)
-            .alignment(HAlignment::Center, VAlignment::Top)
+            .alignment(HAlignment::Right, VAlignment::Top)
             .into()
     }
 
