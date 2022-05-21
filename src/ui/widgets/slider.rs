@@ -8,7 +8,7 @@ use crate::{
         widgets::{Element, Widget},
         Id, Input, InternalState,
     },
-    vec2, vec4, Vec2, Vec4,
+    vec2, vec4, Vec2,
 };
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

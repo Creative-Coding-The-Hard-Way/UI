@@ -97,18 +97,22 @@ impl UIState for ExampleUi {
                     .child(
                         row()
                             .child(
+                                slider(gen_id!(), 0.0, 50.0)
+                                    .value(self.border_width)
+                                    .on_change(ExampleMessage::ValueSlider)
+                                    .container()
+                                    .max_width(Constraint::PercentMaxSize(
+                                        0.75,
+                                    )),
+                                Justify::Center,
+                            )
+                            .child(
                                 label(
                                     &self.font,
                                     format!("{}", self.border_width),
                                 )
                                 .container()
                                 .padding(1.0 * em),
-                                Justify::Center,
-                            )
-                            .child(
-                                slider(gen_id!(), 0.0, 50.0)
-                                    .value(self.border_width)
-                                    .on_change(ExampleMessage::ValueSlider),
                                 Justify::Center,
                             )
                             .space_between(SpaceBetween::EvenSpaceAround),

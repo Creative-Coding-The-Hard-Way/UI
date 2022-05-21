@@ -4,14 +4,11 @@ use ash::vk;
 
 use crate::vulkan::{
     errors::VulkanDebugError, pipeline::PipelineError, PipelineLayout,
-    RenderDevice, RenderPass, VulkanDebug,
+    RenderDevice, VulkanDebug,
 };
 
 /// An owned Pipeline which is destroyed automatically when it's dropped.
 pub struct Pipeline {
-    /// The render pass used when creating this pipeline.
-    pub render_pass: Arc<RenderPass>,
-
     /// The pipeline layout used to create this pipeline.
     pub pipeline_layout: Arc<PipelineLayout>,
 
@@ -29,7 +26,6 @@ impl Pipeline {
     /// Create a new graphics pipeline.
     pub fn new_graphics_pipeline(
         create_info: vk::GraphicsPipelineCreateInfo,
-        render_pass: Arc<RenderPass>,
         pipeline_layout: Arc<PipelineLayout>,
         vk_dev: Arc<RenderDevice>,
     ) -> Result<Pipeline, PipelineError> {
@@ -46,7 +42,6 @@ impl Pipeline {
                 })?[0]
         };
         Ok(Self {
-            render_pass,
             pipeline_layout,
             raw,
             bind_point: vk::PipelineBindPoint::GRAPHICS,
