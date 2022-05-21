@@ -124,7 +124,7 @@ impl UIState for ExampleUi {
                     .background(vec4(0.0, 0.0, 0.0, 0.2), 0),
             )
             .container()
-            .max_width(Constraint::PercentMaxSize(0.25))
+            .max_width(Constraint::FixedMaxSize(15.0 * em))
             .background(vec4(0.0, 0.0, 0.3, 0.1), 0);
 
         align(window)

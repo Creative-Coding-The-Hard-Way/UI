@@ -18,6 +18,7 @@ use ::{
     std::sync::Arc,
 };
 
+use ccthw::Mat4;
 use example_ui::{ExampleMessage, ExampleUi};
 
 struct Example {
@@ -60,23 +61,22 @@ impl State for Example {
         Ok(())
     }
 
-    fn draw_frame(&mut self, frame: &mut Frame) -> Result<()> {
-        self.ui.draw_frame(frame)?;
+    fn draw_frame(
+        &mut self,
+        app_frame: &mut Frame,
+        ui_frame: &mut Frame,
+    ) -> Result<()> {
+        self.ui.draw_frame(ui_frame)?;
+
+        app_frame.set_view_projection(Mat4::identity())?;
 
         let tile = Tile {
-            model: Rect::centered_at(400.0, 400.0, 400.0, 100.0),
+            model: Rect::centered_at(0.0, 0.0, 0.5, 0.5),
             color: vec4(0.25, 0.25, 0.25, 1.0),
+            depth: 0.5,
             ..Default::default()
         };
-        tile.fill(frame)?;
-
-        Tile {
-            color: vec4(0.0, 0.0, 0.0, 1.0),
-            outline_width: self.ui.state().border_width,
-            texture_index: self.texture_index,
-            ..tile
-        }
-        .outline(frame)?;
+        tile.fill(app_frame)?;
 
         Ok(())
     }

@@ -21,7 +21,11 @@ pub trait State {
         Self: Sized;
 
     /// Draw a single application frame to the screen.
-    fn draw_frame(&mut self, frame: &mut Frame) -> Result<()>;
+    fn draw_frame(
+        &mut self,
+        app_frame: &mut Frame,
+        ui_frame: &mut Frame,
+    ) -> Result<()>;
 
     /// Rebuild any swapchain dependent resources after it's been invalidated
     /// for some reason.

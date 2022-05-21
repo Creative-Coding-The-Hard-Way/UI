@@ -22,7 +22,8 @@ pub struct Application<S: State> {
 
     // Vulkan resources
     frame_pipeline: FramePipeline,
-    immediate_mode_graphics: ImmediateModeGraphics,
+    ui_layer: ImmediateModeGraphics,
+    app_layer: ImmediateModeGraphics,
     _asset_loader: AssetLoader,
     msaa_renderpass: MultisampleRenderpass,
     framebuffers: Vec<Framebuffer>,
@@ -64,7 +65,13 @@ impl<S: State> Application<S> {
             &vk_alloc,
         )?;
 
-        let immediate_mode_graphics = ImmediateModeGraphics::new(
+        let ui_layer = ImmediateModeGraphics::new(
+            &msaa_renderpass,
+            asset_loader.textures(),
+            vk_alloc.clone(),
+            vk_dev.clone(),
+        )?;
+        let app_layer = ImmediateModeGraphics::new(
             &msaa_renderpass,
             asset_loader.textures(),
             vk_alloc.clone(),
@@ -81,7 +88,8 @@ impl<S: State> Application<S> {
             frame_pipeline,
             msaa_renderpass,
             framebuffers,
-            immediate_mode_graphics,
+            ui_layer,
+            app_layer,
             _asset_loader: asset_loader,
             swapchain_needs_rebuild: true,
             vk_dev,
@@ -133,16 +141,21 @@ impl<S: State> Application<S> {
             );
         }
 
-        let mut frame = self
-            .immediate_mode_graphics
+        let mut ui_frame = self
+            .ui_layer
             .acquire_frame(index)
-            .with_context(|| "unable to acquire graphics2 frame")?;
+            .with_context(|| "unable to acquire ui layer frame")?;
 
-        self.state.draw_frame(&mut frame)?;
+        let mut app_frame = self
+            .app_layer
+            .acquire_frame(index)
+            .with_context(|| "unable to acquire application layer frame")?;
+
+        self.state.draw_frame(&mut app_frame, &mut ui_frame)?;
 
         unsafe {
-            self.immediate_mode_graphics
-                .complete_frame(cmds, frame, index)?;
+            self.app_layer.complete_frame(cmds, app_frame, index)?;
+            self.ui_layer.complete_frame(cmds, ui_frame, index)?;
             self.msaa_renderpass.end_renderpass(cmds);
         }
         self.frame_pipeline.end_frame(index)
@@ -168,7 +181,9 @@ impl<S: State> Application<S> {
         )?;
         self.framebuffers =
             self.msaa_renderpass.create_swapchain_framebuffers()?;
-        self.immediate_mode_graphics
+        self.app_layer
+            .rebuild_swapchain_resources(&self.msaa_renderpass)?;
+        self.ui_layer
             .rebuild_swapchain_resources(&self.msaa_renderpass)?;
 
         self.state.rebuild_swapchain_resources(
