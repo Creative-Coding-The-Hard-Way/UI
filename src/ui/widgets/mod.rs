@@ -7,6 +7,7 @@ mod element;
 mod hsplit;
 mod label;
 mod row;
+mod slider;
 mod window;
 
 pub mod prelude;
@@ -29,6 +30,7 @@ pub use self::{
     hsplit::HSplit,
     label::Label,
     row::Row,
+    slider::Slider,
     window::Window,
 };
 

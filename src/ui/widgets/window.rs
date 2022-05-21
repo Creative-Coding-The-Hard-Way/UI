@@ -4,10 +4,10 @@ use crate::{
     gen_id,
     ui::{
         id_hash,
-        primitives::Justify,
+        primitives::{Justify, SpaceBetween},
         widgets::{
             Button, Col, ComposedMessage, Composite, CompositeWidget,
-            Container, Element, Label, WithContainer,
+            Container, Element, Label, Row, WithContainer,
         },
         Font, Id,
     },
@@ -109,37 +109,40 @@ where
 
         match state {
             WindowState::Hidden => {
-                // render just the top bar
-                Col::new()
+                let top_bar = Row::new()
+                    .child(Label::new(&self.font, &self.title), Justify::Center)
                     .child(
                         self.text_button(
                             toggle_id,
                             WindowEvent::ShowWindow,
-                            format!("[show] {}", self.title),
+                            "[show]",
                         ),
-                        Justify::End,
+                        Justify::Center,
                     )
-                    .into()
+                    .space_between(SpaceBetween::EvenSpaceBetween);
+
+                // render just the top bar
+                Col::new().child(top_bar, Justify::End).into()
             }
             WindowState::Visible => {
-                let contents: Element<Message> = self
-                    .contents
-                    .take()
-                    .unwrap()
-                    .container()
-                    .padding(self.font.line_height() * 0.5)
-                    .into();
-
-                // render the visible part of the window
-                Col::new()
+                let top_bar = Row::new()
+                    .child(Label::new(&self.font, &self.title), Justify::Center)
                     .child(
                         self.text_button(
                             toggle_id,
                             WindowEvent::HideWindow,
-                            format!("[hide] {}", self.title),
+                            "[hide]",
                         ),
-                        Justify::End,
+                        Justify::Center,
                     )
+                    .space_between(SpaceBetween::EvenSpaceBetween);
+
+                let contents: Element<Message> =
+                    self.contents.take().unwrap().into();
+
+                // render the visible part of the window
+                Col::new()
+                    .child(top_bar, Justify::End)
                     .child(contents, Justify::Center)
                     .into()
             }

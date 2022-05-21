@@ -5,7 +5,8 @@ pub use crate::{
         primitives::{Axis, Justify, SpaceBetween},
         widgets::{
             Align, Button, Col, Constraint, Container, Element, HAlignment,
-            HSplit, Label, Row, VAlignment, Widget, Window, WithContainer,
+            HSplit, Label, Row, Slider, VAlignment, Widget, Window,
+            WithContainer,
         },
         Font, Id,
     },
@@ -62,4 +63,8 @@ pub fn row<Message>() -> Row<Message> {
 
 pub fn hsplit<Message>() -> HSplit<Message> {
     HSplit::new()
+}
+
+pub fn slider<Message>(id: Id, min: f32, max: f32) -> Slider<Message> {
+    Slider::new(id, min, max)
 }

@@ -49,11 +49,12 @@ impl ExampleUi {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ExampleMessage {
     ToggleFullscreen,
     Increment,
     Decrement,
+    ValueSlider(f32),
 }
 
 impl UIState for ExampleUi {
@@ -93,9 +94,33 @@ impl UIState for ExampleUi {
                 col()
                     .child(fullscreen_controls, Justify::Center)
                     .child(counter_controls, Justify::Center)
-                    .space_between(SpaceBetween::Fixed(0.5 * em)),
+                    .child(
+                        row()
+                            .child(
+                                label(
+                                    &self.font,
+                                    format!("{}", self.border_width),
+                                )
+                                .container()
+                                .padding(1.0 * em),
+                                Justify::Center,
+                            )
+                            .child(
+                                slider(gen_id!(), 0.0, 50.0)
+                                    .value(self.border_width)
+                                    .on_change(ExampleMessage::ValueSlider),
+                                Justify::Center,
+                            )
+                            .space_between(SpaceBetween::EvenSpaceAround),
+                        Justify::Center,
+                    )
+                    .space_between(SpaceBetween::Fixed(0.5 * em))
+                    .container()
+                    .margin(1.0 * em)
+                    .background(vec4(0.0, 0.0, 0.0, 0.2), 0),
             )
             .container()
+            .max_width(Constraint::PercentMaxSize(0.25))
             .background(vec4(0.0, 0.0, 0.3, 0.1), 0);
 
         align(window)
@@ -113,6 +138,9 @@ impl UIState for ExampleUi {
             }
             ExampleMessage::Decrement => {
                 self.border_width -= 2.0;
+            }
+            ExampleMessage::ValueSlider(value) => {
+                self.border_width = value.round();
             }
         }
     }
