@@ -2,7 +2,7 @@ use ::anyhow::Result;
 
 use crate::{
     builder_field, builder_field_some,
-    immediate_mode_graphics::{Drawable, Frame},
+    immediate_mode_graphics::triangles::Frame,
     ui::{
         primitives::{Dimensions, Rect, Tile},
         widgets::{Element, Widget},

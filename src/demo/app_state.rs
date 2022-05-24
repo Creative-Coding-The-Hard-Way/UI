@@ -3,7 +3,7 @@ use ::{anyhow::Result, std::sync::Arc};
 use crate::{
     asset_loader::AssetLoader,
     glfw_window::GlfwWindow,
-    immediate_mode_graphics::Frame,
+    immediate_mode_graphics::triangles::Frame,
     timing::FrameRateLimit,
     vulkan::{MemoryAllocator, RenderDevice},
 };

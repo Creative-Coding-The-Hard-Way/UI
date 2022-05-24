@@ -26,7 +26,7 @@ pub struct AssetLoader {
 }
 
 impl AssetLoader {
-    // Create a new asset loader
+    /// Create a new asset loader
     pub fn new(
         vk_dev: Arc<RenderDevice>,
         vk_alloc: Arc<dyn MemoryAllocator>,
@@ -67,8 +67,11 @@ impl AssetLoader {
         &self.textures
     }
 
-    /// Give data to the texture manager to upload to the gpu and own as a
-    /// combined image sampler.
+    /// Upload the given mipmap data into a 2d texture.
+    ///
+    /// # Returns
+    ///
+    /// An i32 index for this texture in the the `textures()` array.
     pub fn create_texture_with_data(
         &mut self,
         mipmaps: &[MipmapData],
@@ -191,8 +194,11 @@ impl AssetLoader {
         Ok((self.textures.len() - 1) as i32)
     }
 
-    // Load a texture from the image at the given path.
-    // Mipmaps are automatically generated for each of the half-size images.
+    /// Load a texture from the image at the given path.
+    /// Mipmaps are automatically generated for each of the half-size images.
+    /// # Returns
+    ///
+    /// An i32 index for this texture in the the `textures()` array.
     pub fn read_texture<T>(
         &mut self,
         path_to_texture_image: T,

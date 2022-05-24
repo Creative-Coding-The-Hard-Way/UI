@@ -8,7 +8,7 @@ use crate::{
     demo::State,
     frame_pipeline::{FrameError, FramePipeline},
     glfw_window::GlfwWindow,
-    immediate_mode_graphics::ImmediateModeGraphics,
+    immediate_mode_graphics::triangles::Triangles,
     multisample_renderpass::MultisampleRenderpass,
     timing::FrameRateLimit,
     vulkan::{self, Framebuffer, MemoryAllocator, RenderDevice},
@@ -22,8 +22,8 @@ pub struct Application<S: State> {
 
     // Vulkan resources
     frame_pipeline: FramePipeline,
-    ui_layer: ImmediateModeGraphics,
-    app_layer: ImmediateModeGraphics,
+    ui_layer: Triangles,
+    app_layer: Triangles,
     _asset_loader: AssetLoader,
     msaa_renderpass: MultisampleRenderpass,
     framebuffers: Vec<Framebuffer>,
@@ -65,13 +65,13 @@ impl<S: State> Application<S> {
             &vk_alloc,
         )?;
 
-        let ui_layer = ImmediateModeGraphics::new(
+        let ui_layer = Triangles::new(
             &msaa_renderpass,
             asset_loader.textures(),
             vk_alloc.clone(),
             vk_dev.clone(),
         )?;
-        let app_layer = ImmediateModeGraphics::new(
+        let app_layer = Triangles::new(
             &msaa_renderpass,
             asset_loader.textures(),
             vk_alloc.clone(),

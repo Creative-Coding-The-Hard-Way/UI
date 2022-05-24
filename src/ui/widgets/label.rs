@@ -1,7 +1,7 @@
 use ::anyhow::Result;
 
 use crate::{
-    immediate_mode_graphics::{Drawable, Frame},
+    immediate_mode_graphics::triangles::Frame,
     ui::{
         primitives::{Dimensions, Rect, Tile},
         widgets::{Element, Widget},

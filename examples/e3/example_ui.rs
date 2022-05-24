@@ -7,11 +7,17 @@ use ::{
     },
 };
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum ExampleMessage {
+    ToggleFullscreen,
+    AngleSlider(f32),
+}
+
 pub struct ExampleUi {
     em: f32,
     font: Font,
     is_fullscreen: bool,
-    pub border_width: f32,
+    pub angle: f32,
 }
 
 impl ExampleUi {
@@ -29,107 +35,45 @@ impl ExampleUi {
             em,
             font,
             is_fullscreen: false,
-            border_width: 1.0,
+            angle: 0.0,
         })
     }
-
-    pub fn text_button(
-        &self,
-        message: impl AsRef<str>,
-        on_click: ExampleMessage,
-    ) -> Element<ExampleMessage> {
-        text_button(&self.font, &message)
-            .on_click(on_click)
-            .color(vec4(1.0, 1.0, 1.0, 0.0))
-            .hover_color(vec4(1.0, 1.0, 1.0, 0.1))
-            .pressed_color(vec4(1.0, 1.0, 1.0, 0.5))
-            .container()
-            .border(1.0, vec4(0.0, 0.0, 0.0, 0.75), 0)
-            .into()
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum ExampleMessage {
-    ToggleFullscreen,
-    Increment,
-    Decrement,
-    ValueSlider(f32),
 }
 
 impl UIState for ExampleUi {
     type Message = ExampleMessage;
 
     fn view(&self) -> Element<Self::Message> {
-        let em = self.em;
-
         let message = if self.is_fullscreen {
             "Windowed"
         } else {
             "Fullscreen"
         };
 
-        let fullscreen_controls =
-            self.text_button(message, ExampleMessage::ToggleFullscreen);
-
-        let counter_controls = row()
-            .child(
-                self.text_button("-2", ExampleMessage::Decrement),
-                Justify::Center,
-            )
-            .child(
-                label(&self.font, format!("{}", self.border_width)),
-                Justify::Center,
-            )
-            .child(
-                self.text_button("+2", ExampleMessage::Increment),
-                Justify::Center,
-            )
-            .space_between(SpaceBetween::EvenSpaceAround)
+        let fullscreen_button = text_button(&self.font, &message)
+            .on_click(ExampleMessage::ToggleFullscreen)
+            .color(vec4(1.0, 1.0, 1.0, 0.0))
+            .hover_color(vec4(1.0, 1.0, 1.0, 0.1))
+            .pressed_color(vec4(1.0, 1.0, 1.0, 0.5))
             .container()
-            .max_width(Constraint::FixedMaxSize(7.0 * em));
+            .border(1.0, vec4(0.0, 0.0, 0.0, 0.75), 0)
+            .padding(0.5 * self.em);
 
-        let window = Window::new(self.font.clone(), "window controls")
-            .contents(
-                col()
-                    .child(fullscreen_controls, Justify::Center)
-                    .child(counter_controls, Justify::Center)
-                    .child(
-                        row()
-                            .child(
-                                slider(gen_id!(), 0.0, 50.0)
-                                    .value(self.border_width)
-                                    .on_change(ExampleMessage::ValueSlider)
-                                    .container()
-                                    .max_width(Constraint::PercentMaxSize(
-                                        0.75,
-                                    )),
-                                Justify::Center,
-                            )
-                            .child(
-                                label(
-                                    &self.font,
-                                    format!("{}", self.border_width),
-                                )
-                                .container()
-                                .padding(1.0 * em),
-                                Justify::Center,
-                            )
-                            .space_between(SpaceBetween::EvenSpaceAround),
-                        Justify::Center,
-                    )
-                    .space_between(SpaceBetween::Fixed(0.5 * em))
-                    .container()
-                    .margin(1.0 * em)
-                    .background(vec4(0.0, 0.0, 0.0, 0.2), 0),
-            )
-            .container()
-            .max_width(Constraint::FixedMaxSize(15.0 * em))
-            .background(vec4(0.0, 0.0, 0.3, 0.1), 0);
+        let angle_slider = slider(gen_id!(), 0.0, 2.0 * std::f32::consts::PI)
+            .on_change(ExampleMessage::AngleSlider)
+            .value(self.angle);
 
-        align(window)
-            .alignment(HAlignment::Right, VAlignment::Top)
-            .into()
+        align(
+            col()
+                .child(fullscreen_button, Justify::Center)
+                .child(label(&self.font, "Sprite Angle"), Justify::Center)
+                .child(angle_slider, Justify::Center)
+                .space_between(SpaceBetween::Fixed(self.em))
+                .container()
+                .max_width(Constraint::FixedMaxSize(10.0 * self.em)),
+        )
+        .alignment(HAlignment::Right, VAlignment::Top)
+        .into()
     }
 
     fn update(&mut self, message: &ExampleMessage) {
@@ -137,14 +81,8 @@ impl UIState for ExampleUi {
             ExampleMessage::ToggleFullscreen => {
                 self.is_fullscreen = !self.is_fullscreen;
             }
-            ExampleMessage::Increment => {
-                self.border_width += 2.0;
-            }
-            ExampleMessage::Decrement => {
-                self.border_width -= 2.0;
-            }
-            ExampleMessage::ValueSlider(value) => {
-                self.border_width = value.round();
+            ExampleMessage::AngleSlider(angle) => {
+                self.angle = angle;
             }
         }
     }

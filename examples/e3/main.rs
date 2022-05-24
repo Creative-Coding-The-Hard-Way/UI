@@ -6,24 +6,37 @@ use ::{
         asset_loader::AssetLoader,
         demo::{run_application, State},
         glfw_window::GlfwWindow,
-        immediate_mode_graphics::{Drawable, Frame},
+        immediate_mode_graphics::{triangles::Frame, Sprite},
+        math::projections,
         timing::FrameRateLimit,
-        ui::{
-            primitives::{Rect, Tile},
-            UI,
-        },
-        vec4,
+        ui::UI,
         vulkan::{MemoryAllocator, RenderDevice},
+        Mat4,
     },
     std::sync::Arc,
 };
 
-use ccthw::Mat4;
 use example_ui::{ExampleMessage, ExampleUi};
 
 struct Example {
-    texture_index: i32,
+    sprite_texture: i32,
     ui: UI<ExampleUi>,
+    app_camera: Mat4,
+}
+
+impl Example {
+    fn projection(aspect_ratio: f32) -> Mat4 {
+        let height = 10.0;
+        let width = height * aspect_ratio;
+        projections::ortho(
+            -0.5 * width,
+            0.5 * width,
+            -0.5 * height,
+            0.5 * height,
+            0.0,
+            1.0,
+        )
+    }
 }
 
 impl State for Example {
@@ -35,14 +48,22 @@ impl State for Example {
         _vk_alloc: &Arc<dyn MemoryAllocator>,
     ) -> Result<Self> {
         let scale = window.window.get_content_scale();
-        fps_limit.set_target_fps(120);
-        let texture_index = asset_loader.read_texture("assets/border.png")?;
+
+        let (w, h) = window.window.get_framebuffer_size();
+        let aspect_ratio = w as f32 / h as f32;
+
+        fps_limit.set_target_fps(60);
+
+        let sprite_texture =
+            asset_loader.read_texture("assets/texture_orientation.png")?;
+
         Ok(Self {
-            texture_index,
+            sprite_texture,
             ui: UI::new(
                 window.window.get_framebuffer_size().into(),
                 ExampleUi::new(scale.0, asset_loader)?,
             ),
+            app_camera: Self::projection(aspect_ratio),
         })
     }
 
@@ -55,9 +76,16 @@ impl State for Example {
             Some(ExampleMessage::ToggleFullscreen) => {
                 window.toggle_fullscreen()?
             }
-            Some(_) => (),
-            None => (),
+            _ => (),
         }
+
+        match event {
+            glfw::WindowEvent::FramebufferSize(w, h) => {
+                self.app_camera = Self::projection(w as f32 / h as f32);
+            }
+            _ => (),
+        }
+
         Ok(())
     }
 
@@ -68,15 +96,16 @@ impl State for Example {
     ) -> Result<()> {
         self.ui.draw_frame(ui_frame)?;
 
-        app_frame.set_view_projection(Mat4::identity())?;
+        app_frame.set_view_projection(self.app_camera)?;
 
-        let tile = Tile {
-            model: Rect::centered_at(0.0, 0.0, 0.5, 0.5),
-            color: vec4(0.25, 0.25, 0.25, 1.0),
-            depth: 0.5,
+        Sprite {
+            width: 6.0,
+            height: 6.0,
+            texture_index: self.sprite_texture,
+            angle_in_radians: self.ui.state().angle,
             ..Default::default()
-        };
-        tile.fill(app_frame)?;
+        }
+        .draw(app_frame)?;
 
         Ok(())
     }

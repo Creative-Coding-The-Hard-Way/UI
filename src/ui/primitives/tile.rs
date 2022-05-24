@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::{
-    immediate_mode_graphics::{Drawable, Frame, Vertex},
+    immediate_mode_graphics::{Vertex, VertexStream},
     ui::primitives::Rect,
     vec2, vec3, vec4, Vec4,
 };
@@ -47,9 +47,9 @@ impl Default for Tile {
     }
 }
 
-impl Drawable for Tile {
-    fn fill(&self, frame: &mut Frame) -> Result<()> {
-        frame.push_vertices(
+impl Tile {
+    pub fn fill(&self, vertices: &mut impl VertexStream) -> Result<()> {
+        vertices.push_vertices(
             &[
                 Vertex::new(
                     vec3(self.model.left(), self.model.top(), self.depth),
@@ -83,7 +83,7 @@ impl Drawable for Tile {
         )
     }
 
-    fn outline(&self, frame: &mut Frame) -> Result<()> {
+    pub fn outline(&self, vertices: &mut impl VertexStream) -> Result<()> {
         let outline_properties = Tile {
             depth: self.depth,
             color: self.color,
@@ -199,18 +199,18 @@ impl Drawable for Tile {
             ..outline_properties
         };
 
-        top.fill(frame)?;
-        bottom.fill(frame)?;
-        left.fill(frame)?;
-        right.fill(frame)?;
+        top.fill(vertices)?;
+        bottom.fill(vertices)?;
+        left.fill(vertices)?;
+        right.fill(vertices)?;
 
         // Each corner renders as it's own little quad to ensure the UV coords
         // are correct and that the corner texture isn't distorted when the
         // Model is out of square.
-        corner_top_left.fill(frame)?;
-        corner_top_right.fill(frame)?;
-        corner_bottom_left.fill(frame)?;
-        corner_bottom_right.fill(frame)?;
+        corner_top_left.fill(vertices)?;
+        corner_top_right.fill(vertices)?;
+        corner_bottom_left.fill(vertices)?;
+        corner_bottom_right.fill(vertices)?;
 
         Ok(())
     }

@@ -1,5 +1,5 @@
 use crate::{
-    immediate_mode_graphics::Frame,
+    immediate_mode_graphics::triangles::Frame,
     ui::{
         primitives::{Dimensions, Rect},
         ui_screen_space_projection,

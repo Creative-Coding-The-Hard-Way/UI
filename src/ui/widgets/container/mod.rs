@@ -4,7 +4,7 @@ use ::anyhow::Result;
 
 use crate::{
     builder_field,
-    immediate_mode_graphics::{Drawable, Frame},
+    immediate_mode_graphics::triangles::Frame,
     ui::{
         primitives::{Dimensions, Rect, Tile},
         widgets::{Element, Widget},

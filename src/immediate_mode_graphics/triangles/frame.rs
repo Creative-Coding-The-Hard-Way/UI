@@ -2,7 +2,7 @@ use ::{anyhow::Result, ash::vk, std::sync::Arc};
 
 use crate::{
     asset_loader::CombinedImageSampler,
-    immediate_mode_graphics::Vertex,
+    immediate_mode_graphics::{Vertex, VertexStream},
     vulkan::{
         errors::VulkanError, Buffer, CommandBuffer, DescriptorPool,
         DescriptorSet, DescriptorSetLayout, GpuVec, MemoryAllocator,
@@ -140,9 +140,11 @@ impl Frame {
             };
         Ok(())
     }
+}
 
+impl VertexStream for Frame {
     /// Push vertices into the frame. Indices index into the given vertex slice.
-    pub fn push_vertices(
+    fn push_vertices(
         &mut self,
         vertices: &[Vertex],
         indices: &[u32],
