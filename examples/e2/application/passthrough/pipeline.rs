@@ -158,7 +158,6 @@ pub(super) fn create_pipeline(
     };
     Ok(Pipeline::new_graphics_pipeline(
         pipeline_create_info,
-        msaa_renderpass.render_pass.clone(),
         pipeline_layout,
         vk_dev.clone(),
     )?)
