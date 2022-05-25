@@ -29,10 +29,12 @@ where
 }
 
 /// Create a text-button.
-pub fn text_button<Message, T>(font: &Font, text: &T) -> Button<Message>
+pub fn text_button<Message>(
+    font: &Font,
+    text: impl AsRef<str>,
+) -> Button<Message>
 where
     Message: 'static,
-    T: AsRef<str>,
 {
     let id = gen_id!(text.as_ref());
     Button::new(

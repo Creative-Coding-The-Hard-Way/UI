@@ -49,8 +49,7 @@ impl UIState for ExampleUi {
         } else {
             "Fullscreen"
         };
-
-        let fullscreen_button = text_button(&self.font, &message)
+        let fullscreen_button = text_button(&self.font, message)
             .on_click(ExampleMessage::ToggleFullscreen)
             .color(vec4(1.0, 1.0, 1.0, 0.0))
             .hover_color(vec4(1.0, 1.0, 1.0, 0.1))
